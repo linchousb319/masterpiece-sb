@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coffee Profit by Channel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#eef1ee;--panel:#fbfcfb;--ink:#1d2a2c;--mute:#5b6a6d;--line:#d3dbd7;--acc:#1f6f6b;--accbg:#d9ebe8;--pos:#2b7a4b;--neg:#b3403a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141b1c;--panel:#1c2527;--ink:#e6eeec;--mute:#93a3a5;--line:#2f3c3e;--acc:#6cc3bb;--accbg:#22403e;--pos:#6fcf94;--neg:#ee8a83}}
+:root[data-theme="dark"]{--bg:#141b1c;--panel:#1c2527;--ink:#e6eeec;--mute:#93a3a5;--line:#2f3c3e;--acc:#6cc3bb;--accbg:#22403e;--pos:#6fcf94;--neg:#ee8a83}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:28px 16px 60px}
+h1{font:700 clamp(28px,5vw,40px)/1.1 Fraunces,Georgia,serif;margin:0 0 8px}
+h2{font:600 20px/1.2 Fraunces,Georgia,serif;margin:0 0 4px}
+h3{font:600 16px/1.3 "Instrument Sans",system-ui,sans-serif;margin:22px 0 2px;padding-top:16px;border-top:1px solid var(--line)}
+p.lead{color:var(--mute);margin:0 0 24px;max-width:62ch}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+.sub{color:var(--mute);font-size:13px;margin:0 0 12px;max-width:72ch}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+button,label.btn{font:inherit;font-weight:500;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer}
+button.pri,label.pri{background:var(--acc);border-color:var(--acc);color:var(--bg)}
+button:focus-visible,input:focus-visible,label.btn:focus-within{outline:2px solid var(--acc);outline-offset:2px}
+.wrap{overflow-x:auto;margin-bottom:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle;font-variant-numeric:tabular-nums}
+th{font-weight:600;color:var(--mute);font-size:12.5px;min-width:78px}
+td input,.ctl input[type=number],.ctl input[type=text]{width:100%;min-width:72px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px}
+td input.nm{min-width:130px}
+textarea.nm{display:block;width:100%;min-width:220px;font:inherit;line-height:1.35;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px;resize:none;overflow:hidden}
+textarea.nm:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+td.bean{min-width:140px;max-width:280px;overflow-wrap:anywhere}
+select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px;min-width:150px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-bottom:14px}
+.ctl label{display:block;font-weight:500;margin-bottom:4px}
+.ctl output{color:var(--acc);font-weight:600}
+.ctl input[type=range]{width:100%;accent-color:var(--acc)}
+.kpis{display:flex;flex-wrap:wrap;gap:28px;margin:4px 0 16px}
+.kpis div{min-width:130px}
+.kpis small{display:block;color:var(--mute);font-size:12.5px}
+.kpis b{font:700 26px/1.2 Fraunces,Georgia,serif}
+tr.tot td{font-weight:600;border-top:2px solid var(--line)}
+td.best{background:var(--accbg);font-weight:600}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.bean{font-weight:600}
+.note{color:var(--mute);font-size:13px;margin:8px 0 0}
+.warn{color:var(--neg);font-size:13px;margin:6px 0 0}
+.del{padding:4px 9px}
+</style>
+</head>
+<body>
+<main>
+<h1>Slow Bar Profit Analysis</h1>
+<p class="lead">Enter what you bought, assign beans to subscription tiers, then decide how many of the remaining bags go to retail and pour over. Totals update as you type.</p>
+
+<section>
+<h2>1. Bean cost</h2>
+<p class="sub">Refresh from your Google Sheet (a supplier invoice or the starter sheet), load a .xlsx or .csv, or type into the table. Cup price and grams per cup are not on supplier invoices, so enter them here once; they are kept when you refresh. Retail bags are assumed to be the same size you buy.</p>
+<div id="gsbox">
+<div class="ctl" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:6px"><div><label for="gsurl">Google Sheet link</label><input id="gsurl" type="text" value="" placeholder="Paste a Google Sheets link" autocomplete="off"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="gsrefresh" class="pri">Refresh from Google Sheet</button><button id="gssign" hidden>Sign in with Google and refresh</button></div></div>
+<div class="sub" style="margin:0 0 6px">Paste a link to your Google Sheet and press Refresh. A sheet shared as “Anyone with the link can view” loads right away. For a private sheet, sign in with Google and the app reads it with your own access.</div>
+<div class="sub" id="gsmsg" role="status"></div>
+</div>
+<div class="bar">
+<label class="btn pri">Load spreadsheet<input id="file" type="file" accept=".xlsx,.xls,.csv" hidden></label>
+<button id="sample">Load sample beans</button>
+<button id="add">Add bean</button>
+</div>
+<div id="msg" class="sub" role="status"></div>
+<div class="wrap"><table id="inp"></table></div>
+<div class="ctl" style="max-width:700px"><div><label for="inship">Total shipping cost for the beans, shipped to us ($)</label><input id="inship" type="number" min="0" step="0.05" value="0"><div class="sub" id="shipNote" style="margin:2px 0 0"></div></div><div><label for="tm">Target margin per pour over cup (%)</label><input id="tm" type="number" min="0" max="95" step="1" value="80"><div class="sub" style="margin:2px 0 0">Sets the suggested cup price from bean cost. Type your own cup price, or a margin for one bean, in the table to override it.</div></div></div>
+</section>
+
+<section>
+<h2>2. Play with the mix</h2>
+<p class="sub">Work top to bottom: subscriptions take bags first, and whatever is left can go to retail or pour over.</p>
+
+<h3>2a. Subscriptions</h3>
+<p class="sub">Set each tier's price and subscriber count, then pick which bean goes in each bag. Every subscriber in a tier gets the same bean(s): Tiers 1 and 2 get one bag, Tier 3 gets two. Bean cost comes from the bag cost of the beans you pick. Enter the shipping cost per subscriber below; the total is worked out from your subscriber counts. If your Google Sheet has a Tier column, refreshing fills in the beans for you (Tier 3 gets the Tier 1 and Tier 2 beans). You can change any of them here.</p>
+<div class="ctl" style="max-width:340px"><div><label for="ship">Shipping cost per subscriber ($)</label><input id="ship" type="number" min="0" step="0.05" value="0"><div class="sub" id="shipTot" style="margin:2px 0 0"></div></div></div>
+<div class="wrap"><table id="tierT"></table></div>
+<div class="wrap"><table id="subM"></table></div>
+<div class="wrap"><table id="subOut"></table></div>
+
+<h3>2b. Retail</h3>
+<div class="ctl"><div><label for="sh">Auto split of leftover bags: pour over <output id="oH">50%</output></label><input id="sh" type="range" min="0" max="100" value="50"><div class="sub" id="oH2" style="margin:2px 0 0"></div></div></div>
+<p class="sub">Reserve whole bags for retail. Leave boxes blank to use the grey auto values. Unsold reserved bags still count as cost.</p>
+<div class="wrap"><table id="retT"></table></div>
+
+<h3>2c. Pour over</h3>
+<p class="sub">Reserve bags for pour over. The table shows how many cups those bags make, how many you must sell to break even, and profit if you sell a different number of cups. The price per cup defaults to the cup price in section 1, or to the suggested price for your target margin if that is blank. Type a price here to try a different one.</p>
+<div class="wrap"><table id="pourT"></table></div>
+<div id="warn"></div>
+</section>
+
+<section>
+<h2>3. Totals</h2>
+<div class="kpis" id="kpis"></div>
+<div class="wrap"><table id="sum"></table></div>
+</section>
+
+<section>
+<h2>4. Retail vs pour over per 100 g</h2>
+<p class="sub">Profit from 100 g of the same bean in each channel, using the prices above. Subscriptions are left out because their bags and prices are fixed.</p>
+<div class="wrap"><table id="cmp"></table></div>
+</section>
+</main>
+
+<script>
+var COLS=[['name','Bean'],['bagCost','Bag cost ($)'],['bagGrams','Bag grams'],['bags','Bags purchased this month'],['cupPrice','Pour over cup price ($, blank = suggested)'],['gpc','Grams per cup'],['retailPrice','Retail bag price ($)']];
+var PREFIX=[['tier','tier'],['coffeedescription','name'],['size','bagGrams'],['wholesaleprice','bagCost'],['quantity','bags'],['beanname','name'],['bean','name'],['name','name'],['bagcost','bagCost'],['costperbag','bagCost'],['baggrams','bagGrams'],['gramsperbag','bagGrams'],['bagsize','bagGrams'],['bagspurchased','bags'],['bagsbought','bags'],['bags','bags'],['cupprice','cupPrice'],['pourovercupprice','cupPrice'],['gramspercup','gpc'],['retailprice','retailPrice'],['retailbagprice','retailPrice']];
+var EXTRA=['rB','rS','rP','pB','pC','pP'];
+var beans=[],tiers=[{price:30,subs:'',slots:['']},{price:50,subs:'',slots:['']},{price:72,subs:'',slots:['','']}];
+var $=function(i){return document.getElementById(i)};
+function num(v){var n=parseFloat(String(v).replace(/[$,%]/g,''));return isNaN(n)?0:n}
+function fl(v){return Math.max(0,Math.floor(num(v)))}
+function has(v){return String(v)!==''}
+function money(v){return (v<0?'\u2212':'')+'$'+Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+function int(v){return Math.round(v).toLocaleString()}
+function cls(v){return v<0?'neg':'pos'}
+function set(id,html,c){var e=$(id);if(e){e.innerHTML=html;e.className=c||''}}
+function blank(){var b={};COLS.forEach(function(c){b[c[0]]=''});EXTRA.forEach(function(k){b[k]=''});return b}
+function fieldFor(h){var k=String(h).toLowerCase().replace(/[^a-z0-9]/g,'');for(var i=0;i<PREFIX.length;i++){if(k.indexOf(PREFIX[i][0])===0)return PREFIX[i][1]}return null}
+function nm(b){return b.name||'Unnamed'}
+function suggestCup(b){
+  var G=num(b.bagGrams),g=num(b.gpc),c=num(b.bagCost),m=num($('tm').value)/100;
+  return (G>0&&g>0&&c>0&&m>=0&&m<1)?Math.ceil(g*c/G/(1-m)*100)/100:0;
+}
+function cupBase(b){return has(b.cupPrice)?num(b.cupPrice):suggestCup(b)}
+function field(k,id,i,step,extra){return '<td><input id="'+id+i+'" type="number" min="0" step="'+step+'" data-i="'+i+'" data-k="'+k+'" value="'+String(extra[k])+'"></td>'}
+
+/* ---------- structure ---------- */
+function esc(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function nameCell(b,i,label){return '<td><textarea class="nm" rows="1" data-i="'+i+'" data-k="name" aria-label="'+label+' row '+(i+1)+'">'+esc(b.name)+'</textarea></td>'}
+function autosize(el){el.style.height='auto';if(el.scrollHeight>0)el.style.height=(el.scrollHeight+el.offsetHeight-el.clientHeight)+'px'}
+function autosizeAll(){document.querySelectorAll('#inp textarea.nm').forEach(autosize)}
+function marginCells(k,i){
+  if(k==='gpc')return '<td><input type="number" min="0" max="99" step="0.1" id="cm'+i+'" data-mg="cup" data-i="'+i+'" aria-label="Pour over margin per cup (%) row '+(i+1)+'"></td>';
+  if(k==='retailPrice')return '<td id="rm'+i+'"></td>';
+  return '';
+}
+function build(){
+  var h='<tr>'+COLS.map(function(c){return '<th>'+c[1]+'</th>'+(c[0]==='gpc'?'<th>Pour over margin per cup (%)</th>':'')+(c[0]==='retailPrice'?'<th>Retail margin per bag (%)</th>':'')}).join('')+'<th></th></tr>';
+  beans.forEach(function(b,i){
+    h+='<tr>'+COLS.map(function(c){var k=c[0];if(k==='name')return nameCell(b,i,c[1])+marginCells(k,i);return '<td><input class="'+(k==='name'?'nm':'')+'" data-i="'+i+'" data-k="'+k+'" '+(k==='name'?'type="text"':'type="number" min="0" step="any"')+' value="'+String(b[k]).replace(/"/g,'&quot;')+'" aria-label="'+c[1]+' row '+(i+1)+'"></td>'+marginCells(k,i)}).join('')+'<td><button class="del" data-del="'+i+'">Remove</button></td></tr>';
+  });
+  $('inp').innerHTML=h;autosizeAll();
+
+  tiers.forEach(function(x){x.slots=x.slots.map(function(v){return v!==''&&+v<beans.length?v:''})});
+  var t='<tr><th>Tier</th><th>Price per month ($)</th><th>Subscribers this month</th><th>Bag 1 bean</th><th>Bag 2 bean</th><th>Bean cost per subscriber</th></tr>';
+  function sel(k,j){
+    if(j>=tiers[k].slots.length)return '<td>\u2014</td>';
+    return '<td><select data-t="'+k+'" data-s="'+j+'" aria-label="Tier '+(k+1)+' bag '+(j+1)+' bean"><option value="">Choose a bean</option>'+beans.map(function(b,i){return '<option value="'+i+'"'+(String(tiers[k].slots[j])===String(i)?' selected':'')+'>'+nm(b)+'</option>'}).join('')+'</select></td>';
+  }
+  tiers.forEach(function(x,k){
+    t+='<tr><td class="bean">Tier '+(k+1)+' ('+x.slots.length+(x.slots.length>1?' bags':' bag')+')</td><td><input type="number" min="0" step="0.5" data-t="'+k+'" data-f="price" value="'+x.price+'"></td><td><input type="number" min="0" step="1" data-t="'+k+'" data-f="subs" value="'+x.subs+'"></td>'+sel(k,0)+sel(k,1)+'<td id="tc'+k+'"></td></tr>';
+  });
+  $('tierT').innerHTML=t;
+  var m='<tr><th>Bean</th><th>Bags purchased</th><th>Bags used by subscriptions</th><th>Bags left</th></tr>';
+  beans.forEach(function(b,i){m+='<tr><td class="bean" data-n="'+i+'">'+nm(b)+'</td><td id="sp'+i+'"></td><td id="su'+i+'"></td><td id="sl'+i+'"></td></tr>'});
+  $('subM').innerHTML=m;
+
+  var r='<tr><th>Bean</th><th>Bags reserved for retail</th><th>Bags sold</th><th>Retail price ($)</th><th>Revenue</th><th>Bean cost</th><th>Profit</th></tr>';
+  beans.forEach(function(b,i){r+='<tr><td class="bean" data-n="'+i+'">'+nm(b)+'</td>'+field('rB','rB_',i,1,b)+field('rS','rS_',i,1,b)+field('rP','rP_',i,0.05,b)+'<td id="rr'+i+'"></td><td id="rc'+i+'"></td><td id="rg'+i+'"></td></tr>'});
+  $('retT').innerHTML=r;
+
+  var p='<tr><th>Bean</th><th>Bags reserved for pour over</th><th>Cups these bags make</th><th>Cups sold</th><th>Price per cup ($)</th><th>Margin per cup</th><th>Cups to break even</th><th>Revenue</th><th>Bean cost</th><th>Profit</th><th>Unassigned bags</th></tr>';
+  beans.forEach(function(b,i){p+='<tr><td class="bean" data-n="'+i+'">'+nm(b)+'</td>'+field('pB','pB_',i,1,b)+'<td id="pa'+i+'"></td>'+field('pC','pC_',i,1,b)+field('pP','pP_',i,0.05,b)+'<td id="pm'+i+'"></td><td id="pe'+i+'"></td><td id="pr'+i+'"></td><td id="pc'+i+'"></td><td id="pg'+i+'"></td><td id="pu'+i+'"></td></tr>'});
+  $('pourT').innerHTML=p;
+  update();
+}
+
+/* ---------- model ---------- */
+function plan(b,sb){
+  var cost=num(b.bagCost),G=num(b.bagGrams),total=fl(b.bags);
+  var rem=Math.max(0,total-sb),share=$('sh').value/100,r,p;
+  var rT=has(b.rB),pT=has(b.pB);
+  if(rT&&pT){r=fl(b.rB);p=fl(b.pB)}else if(rT){r=fl(b.rB);p=Math.max(0,rem-r)}else if(pT){p=fl(b.pB);r=Math.max(0,rem-p)}else{p=Math.round(rem*share);r=rem-p}
+  var rSold=has(b.rS)?Math.min(r,fl(b.rS)):r,rPr=has(b.rP)?num(b.rP):num(b.retailPrice);
+  var gpc=num(b.gpc),avail=gpc>0?Math.floor(p*G/gpc):0,cSold=has(b.pC)?Math.min(avail,fl(b.pC)):avail,pPr=has(b.pP)?num(b.pP):cupBase(b);
+  return {cost:cost,total:total,sb:sb,rem:rem,r:r,p:p,rSold:rSold,rPr:rPr,rRev:rSold*rPr,rCost:r*cost,avail:avail,cSold:cSold,pPr:pPr,pRev:cSold*pPr,pCost:p*cost,be:pPr>0?Math.ceil(p*cost/pPr):0,unas:total-sb-r-p};
+}
+
+function update(){
+  var ship=num($('ship').value),warn=[],SB=beans.map(function(){return 0}),totSubs=0;
+  var tierInfo=tiers.map(function(x,k){
+    var subs=fl(x.subs),cps=0,missing=0;
+    x.slots.forEach(function(v){if(v===''){missing++}else{SB[+v]+=subs;cps+=num(beans[+v].bagCost)}});
+    totSubs+=subs;
+    if(missing&&subs)warn.push('Tier '+(k+1)+': choose a bean for each bag.');
+    set('tc'+k,money(cps));
+    return {subs:subs,cps:cps};
+  });
+  $('shipTot').textContent='Total subscription shipping: '+money(ship*totSubs);
+  var P=beans.map(function(b,i){return plan(b,SB[i])});
+  $('oH').textContent=$('sh').value+'%';
+  $('oH2').textContent='Retail gets the other '+(100-$('sh').value)+'%, where you leave both boxes blank.';
+
+  /* subscriptions */
+  var S=tiers.map(function(x,k){
+    var subs=tierInfo[k].subs,cost=subs*tierInfo[k].cps,rev=subs*num(x.price),sh=ship*subs;
+    return {subs:subs,rev:rev,cost:cost,ship:sh,profit:rev-cost-sh};
+  });
+  var so='<tr><th>Tier</th><th>Subscribers</th><th>Revenue</th><th>Bean cost</th><th>Shipping</th><th>Profit</th><th>Profit per subscriber</th></tr>',T={subs:0,rev:0,cost:0,ship:0,profit:0};
+  S.forEach(function(s,k){
+    so+='<tr><td class="bean">Tier '+(k+1)+'</td><td>'+int(s.subs)+'</td><td>'+money(s.rev)+'</td><td>'+money(s.cost)+'</td><td>'+money(s.ship)+'</td><td class="'+cls(s.profit)+'">'+money(s.profit)+'</td><td>'+(s.subs?money(s.profit/s.subs):'\u2014')+'</td></tr>';
+    Object.keys(T).forEach(function(q){T[q]+=s[q]});
+  });
+  so+='<tr class="tot"><td>All tiers</td><td>'+int(T.subs)+'</td><td>'+money(T.rev)+'</td><td>'+money(T.cost)+'</td><td>'+money(T.ship)+'</td><td class="'+cls(T.profit)+'">'+money(T.profit)+'</td><td>'+(T.subs?money(T.profit/T.subs):'\u2014')+'</td></tr>';
+  $('subOut').innerHTML=so;
+
+  /* per bean */
+  var R={rev:0,cost:0},Q={rev:0,cost:0},U=0,TOT=0;
+  beans.forEach(function(b,i){
+    var p=P[i];
+    set('sp'+i,int(p.total));set('su'+i,int(p.sb));
+    set('sl'+i,p.total?(p.total-p.sb)+' bags':'\u2014',p.total-p.sb<0?'neg':'');
+    if(p.total-p.sb<0)warn.push(nm(b)+': subscriptions use more bags than you bought.');
+    var rb=$('rB_'+i);rb.placeholder=p.r;$('rS_'+i).placeholder=p.r;$('rP_'+i).placeholder=num(b.retailPrice)||'';
+    set('rr'+i,money(p.rRev));set('rc'+i,money(p.rCost));set('rg'+i,money(p.rRev-p.rCost),cls(p.rRev-p.rCost));
+    $('pB_'+i).placeholder=p.p;$('pC_'+i).placeholder=p.avail;$('pP_'+i).placeholder=cupBase(b)||'';
+    var ci=document.querySelector('#inp input[data-i="'+i+'"][data-k="cupPrice"]');if(ci)ci.placeholder=suggestCup(b)?suggestCup(b).toFixed(2):'';
+    var cpc=num(b.gpc)>0&&num(b.bagGrams)>0?num(b.gpc)*num(b.bagCost)/num(b.bagGrams):0,cb=cupBase(b),cm=$('cm'+i);
+    if(cm){
+      cm.placeholder=cpc>0?'':'needs grams per cup';
+      if(document.activeElement!==cm)cm.value=(cpc>0&&cb>0)?Math.round((cb-cpc)/cb*1000)/10:'';
+    }
+    var rpr=num(b.retailPrice),rmg=num(b.bagCost)>0&&rpr>0?Math.round((rpr-num(b.bagCost))/rpr*1000)/10:null;
+    set('rm'+i,rmg===null?'\u2014':rmg+'%',rmg!==null&&rmg<0?'neg':'');
+    var cc=num(b.gpc)>0&&num(b.bagGrams)>0?num(b.gpc)*p.cost/num(b.bagGrams):0;
+    set('pm'+i,p.pPr>0&&cc>0?Math.round((p.pPr-cc)/p.pPr*100)+'%':'\u2014');
+    set('pa'+i,int(p.avail));set('pe'+i,p.pPr>0?int(p.be):'\u2014');
+    set('pr'+i,money(p.pRev));set('pc'+i,money(p.pCost));set('pg'+i,money(p.pRev-p.pCost),cls(p.pRev-p.pCost));
+    set('pu'+i,p.total?int(p.unas)+' bags':'\u2014',p.unas<0?'neg':'');
+    if(p.total&&p.unas<0)warn.push(nm(b)+': you assigned '+int(-p.unas)+' more bag(s) than you bought. Lower a quantity or raise bags purchased.');
+    R.rev+=p.rRev;R.cost+=p.rCost;Q.rev+=p.pRev;Q.cost+=p.pCost;U+=Math.max(0,p.unas)*p.cost;TOT+=p.total*p.cost;
+  });
+  $('warn').innerHTML=warn.map(function(w){return '<p class="warn">'+w+'</p>'}).join('');
+
+  /* totals */
+  var inb=num($('inship').value),beanCost=T.cost+R.cost+Q.cost+U,shipAll=T.ship+inb,rev=T.rev+R.rev+Q.rev,profit=rev-beanCost-shipAll;
+  $('kpis').innerHTML='<div><small>Total bean cost</small><b>'+money(beanCost)+'</b></div><div><small>Total shipping (beans + subscriptions)</small><b>'+money(shipAll)+'</b></div><div><small>Total revenue</small><b>'+money(rev)+'</b></div><div><small>Total profit</small><b class="'+cls(profit)+'">'+money(profit)+'</b></div><div><small>Margin</small><b>'+(rev>0?Math.round(profit/rev*100)+'%':'\u2014')+'</b></div>';
+  function row(n,rv,c,s){var pf=rv-c-s;return '<tr><td class="bean">'+n+'</td><td>'+money(rv)+'</td><td>'+money(c)+'</td><td>'+money(s)+'</td><td class="'+cls(pf)+'">'+money(pf)+'</td><td>'+(rv>0?Math.round(pf/rv*100)+'%':'\u2014')+'</td></tr>'}
+  $('sum').innerHTML='<tr><th>Channel</th><th>Revenue</th><th>Bean cost</th><th>Shipping</th><th>Profit</th><th>Margin</th></tr>'+row('Subscriptions',T.rev,T.cost,T.ship)+row('Retail',R.rev,R.cost,0)+row('Pour over',Q.rev,Q.cost,0)+row('Unassigned bags',0,U,0)+row('Shipping for the beans (to us)',0,0,inb)+'<tr class="tot"><td>Total</td><td>'+money(rev)+'</td><td>'+money(beanCost)+'</td><td>'+money(shipAll)+'</td><td class="'+cls(profit)+'">'+money(profit)+'</td><td>'+(rev>0?Math.round(profit/rev*100)+'%':'\u2014')+'</td></tr>';
+
+  /* per 100 g */
+  var c='<tr><th>Bean</th><th>Retail profit per 100 g</th><th>Pour over profit per 100 g</th></tr>';
+  beans.forEach(function(b,i){
+    var p=P[i],G=num(b.bagGrams),gpc=num(b.gpc),r=null,q=null;
+    if(G>0&&p.rPr>0)r=(p.rPr-p.cost)/G*100;
+    if(gpc>0&&G>0&&p.pPr>0)q=(p.pPr-gpc*p.cost/G)/gpc*100;
+    var rb=r!==null&&(q===null||r>=q),qb=q!==null&&(r===null||q>r);
+    c+='<tr><td class="bean" data-n="'+i+'">'+nm(b)+'</td><td class="'+(rb?'best':'')+'">'+(r===null?'\u2014':money(r))+'</td><td class="'+(qb?'best':'')+'">'+(q===null?'\u2014':money(q))+'</td></tr>';
+  });
+  $('cmp').innerHTML=c;
+  document.querySelectorAll('select[data-t] option[value]').forEach(function(o){if(o.value!=='')o.textContent=nm(beans[+o.value])});
+  document.querySelectorAll('[data-n]').forEach(function(e){e.textContent=nm(beans[+e.dataset.n])});
+}
+
+/* ---------- merge, grid parsing, Google Sheet refresh ---------- */
+function normVal(k,v){if(k==='name'||k==='tier')return String(v).trim();if(v===''||v===null||v===undefined)return '';return num(v)}
+function key(n){return String(n).trim().toLowerCase()}
+function mergeBeans(fresh){
+  var old=beans,oldNames=tiers.map(function(x){return x.slots.map(function(v){return v!==''&&old[+v]?key(old[+v].name):''})});
+  var map={};old.forEach(function(b){if(key(b.name))map[key(b.name)]=b});
+  fresh.forEach(function(b){
+    var o=map[key(b.name)];if(!o)return;
+    COLS.forEach(function(c){if(c[0]!=='name'&&!has(b[c[0]]))b[c[0]]=o[c[0]]});
+    EXTRA.forEach(function(k){b[k]=o[k]});
+  });
+  beans=fresh;
+  tiers.forEach(function(x,k){x.slots=oldNames[k].map(function(n){if(n==='')return '';var i=-1;beans.forEach(function(b,j){if(i<0&&key(b.name)===n)i=j});return i<0?'':String(i)})});
+}
+function parseGrid(rows){
+  var hi=-1,map=null,out={beans:[],ship:null};
+  for(var i=0;i<rows.length&&hi<0;i++){
+    var m={},n=0;
+    (rows[i]||[]).forEach(function(h,c){var k=fieldFor(h);if(k&&m[k]===undefined){m[k]=c;n++}});
+    if(n>=3&&m.name!==undefined){hi=i;map=m}
+  }
+  if(hi>=0){
+    for(var r=hi+1;r<rows.length;r++){
+      var row=rows[r]||[];
+      var filled=row.some(function(v){return String(v).trim()!==''});
+      if(!filled)break;
+      var name=String(row[map.name]===undefined?'':row[map.name]).trim();
+      if(!name)break;
+      var b=blank();
+      Object.keys(map).forEach(function(k){var v=row[map[k]];b[k]=normVal(k,v===undefined?'':v)});
+      out.beans.push(b);
+    }
+  }
+  rows.forEach(function(row,ri){
+    (row||[]).forEach(function(c,ci){
+      if(out.ship!==null)return;
+      if(String(c).toLowerCase().replace(/[^a-z0-9]/g,'').indexOf('shippingcost')<0)return;
+      var v='';
+      for(var j=ci+1;j<row.length;j++){if(String(row[j]).trim()!==''){v=row[j];break}}
+      if(v===''){var nx=rows[ri+1]||[];if(nx[ci]!==undefined&&String(nx[ci]).trim()!=='')v=nx[ci]}
+      if(v!==''&&/\d/.test(String(v)))out.ship=num(v);
+    });
+  });
+  return out;
+}
+/* Tier column: the bean marked 1 is Tier 1's bag, the bean marked 2 is Tier 2's bag, Tier 3 gets both */
+function applyTiers(list){
+  var t=[-1,-1],seen=false;
+  list.forEach(function(b,i){
+    var s=String(b.tier===undefined?'':b.tier).trim();
+    if(!s)return;
+    seen=true;
+    (s.match(/\d/g)||[]).forEach(function(d){var n=+d-1;if((n===0||n===1)&&t[n]<0)t[n]=i});
+  });
+  if(!seen)return null;
+  var a=t[0]>=0?String(t[0]):'',c=t[1]>=0?String(t[1]):'';
+  tiers[0].slots=[a];tiers[1].slots=[c];tiers[2].slots=[a,c];
+  return {t1:t[0]>=0?nm(list[t[0]]):null,t2:t[1]>=0?nm(list[t[1]]):null};
+}
+var sheetShip=null;
+function shipNoteUpdate(){
+  var e=$('shipNote');if(!e)return;
+  if(sheetShip===null){e.textContent='';return}
+  e.textContent=Math.abs(num($('inship').value)-sheetShip)<0.005?'Filled from your Google Sheet. Type a different amount to overwrite it.':'You changed this from the sheet\u2019s '+money(sheetShip)+'. Refreshing from the sheet resets it.';
+}
+var MCP=null;
+function gsMsg(t){$('gsmsg').textContent=t}
+/* To let people read private sheets, paste your Google OAuth client ID here (see the setup steps). Leave it empty to support only sheets shared as "Anyone with the link can view". */
+var GOOGLE_CLIENT_ID='1003289898886-dvje7im7k7rvbitrdd59qr76j8ssc359.apps.googleusercontent.com';
+var gToken=null,gTokenExp=0;
+function gTokenOk(){return !!gToken&&Date.now()<gTokenExp}
+function loadGis(){return new Promise(function(res,rej){
+  if(window.google&&window.google.accounts&&window.google.accounts.oauth2)return res();
+  var sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;
+  sc.onload=function(){res()};sc.onerror=function(){rej(gerr('gis_unavailable'))};document.head.appendChild(sc);
+})}
+function getToken(){return new Promise(function(res,rej){
+  var tc=window.google.accounts.oauth2.initTokenClient({
+    client_id:GOOGLE_CLIENT_ID,scope:'https://www.googleapis.com/auth/spreadsheets.readonly',
+    callback:function(r){if(r&&r.error)rej(gerr(r.error==='access_denied'?'signin_cancelled':'signin_failed'));else{gToken=r.access_token;gTokenExp=Date.now()+((r.expires_in||3600)-60)*1000;res()}},
+    error_callback:function(e){rej(gerr(e&&e.type==='popup_closed'?'signin_cancelled':'signin_failed'))}
+  });
+  tc.requestAccessToken({prompt:'select_account'});
+})}
+var mcpP=(window.claude&&window.claude.use)?window.claude.use('mcp').then(function(m){MCP=m||null;return MCP}).catch(function(){return null}):Promise.resolve(null);
+function parseCsv(t){
+  var rows=[],row=[],f='',q=false;
+  for(var i=0;i<t.length;i++){
+    var c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;
+    else if(c===','){row.push(f);f=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f=''}
+    else f+=c;
+  }
+  if(f!==''||row.length){row.push(f);rows.push(row)}
+  return rows;
+}
+function gerr(code){var e=new Error(code);e.code=code;return e}
+/* Reads a sheet shared as "Anyone with the link" (or published to the web) without any sign-in */
+async function fetchPublic(raw,id){
+  var gm=/[#&?]gid=(\d+)/.exec(raw),gid=gm?'&gid='+gm[1]:'';
+  var urls=[],pm=/(https:\/\/docs\.google\.com\/spreadsheets\/d\/e\/[^\/?#]+)/.exec(raw);
+  if(pm)urls.push(pm[1]+'/pub?output=csv'+gid);
+  else{
+    urls.push('https://docs.google.com/spreadsheets/d/'+id+'/gviz/tq?tqx=out:csv'+gid);
+    urls.push('https://docs.google.com/spreadsheets/d/'+id+'/export?format=csv'+gid);
+  }
+  for(var i=0;i<urls.length;i++){
+    var res;
+    try{res=await fetch(urls[i],{credentials:'omit'})}catch(x){continue}
+    if(res.status===404)throw gerr('public_notfound');
+    if(res.status===401||res.status===403)throw gerr('not_public');
+    if(!res.ok)continue;
+    var t=(await res.text()).replace(/^﻿/,'');
+    if(/^\s*</.test(t))throw gerr('not_public');
+    return parseCsv(t);
+  }
+  throw gerr('public_unreachable');
+}
+/* Reads the sheet with the signed-in person's own Google access */
+async function fetchApi(raw,id){
+  var gm=/[#&?]gid=(\d+)/.exec(raw),range='A1:Z100',opt={headers:{Authorization:'Bearer '+gToken}};
+  async function call(u){
+    var r;
+    try{r=await fetch(u,opt)}catch(x){throw gerr('api_network')}
+    if(r.ok)return r.json();
+    var b=null;try{b=await r.json()}catch(x){}
+    var m=(b&&b.error&&b.error.message)||'';
+    if(r.status===401)throw gerr('api_expired');
+    if(r.status===404)throw gerr('public_notfound');
+    if(r.status===403)throw gerr(/has not been used|disabled|SERVICE_DISABLED/i.test(m)?'api_disabled':'api_denied');
+    throw gerr('api_other');
+  }
+  if(gm){
+    var meta=await call('https://sheets.googleapis.com/v4/spreadsheets/'+id+'?fields=sheets.properties(sheetId,title)');
+    var sh=(meta.sheets||[]).filter(function(x){return String(x.properties.sheetId)===gm[1]})[0];
+    if(sh)range="'"+sh.properties.title.replace(/'/g,"''")+"'!A1:Z100";
+  }
+  var d=await call('https://sheets.googleapis.com/v4/spreadsheets/'+id+'/values/'+encodeURIComponent(range));
+  return d.values||[];
+}
+async function refreshFromSheet(signIn){
+  var raw=$('gsurl').value.trim(),isPub=/\/spreadsheets\/d\/e\//.test(raw),lm=/\/d\/([a-zA-Z0-9_-]+)/.exec(raw);
+  var id=isPub?'pub':(lm?lm[1]:(/^[a-zA-Z0-9_-]{20,}$/.test(raw)?raw:null));
+  if(!id){gsMsg('Paste the full Google Sheets link.');return}
+  $('gsrefresh').disabled=true;$('gssign').hidden=true;gsMsg('Reading the sheet…');
+  try{
+    await mcpP;
+    var grid;
+    if(signIn&&!MCP){await loadGis();await getToken()}
+    if(MCP&&!isPub){
+      var res=await MCP.callTool('Google Sheets','get_values',{spreadsheetId:id,range:'A1:Z100'},{cache:false});
+      var p=res.payload;
+      if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){p=null}}
+      grid=p&&p.values?p.values:[];
+    }else if(!isPub&&gTokenOk())grid=await fetchApi(raw,id);
+    else grid=await fetchPublic(raw,id);
+    var out=parseGrid(grid);
+    if(!out.beans.length){gsMsg('I read the sheet but found no bean rows. The first tab needs a header row with a bean name, bag cost (or wholesale price), bag grams (or size), and bags (or quantity).');return}
+    mergeBeans(out.beans);
+    var tr=applyTiers(beans),tierNote='';
+    if(tr)tierNote=' Subscription tiers set from the sheet: Tier 1 gets '+(tr.t1||'no bean yet')+', Tier 2 gets '+(tr.t2||'no bean yet')+', Tier 3 gets both.';
+    var shipNote='';
+    if(out.ship>0){$('inship').value=out.ship;sheetShip=out.ship;shipNoteUpdate();shipNote=' Shipping cost set to '+money(out.ship)+' from the sheet.'}
+    else if(out.ship===0){shipNote=' The sheet lists shipping as $0.00, so the shipping box was left as you had it.'}
+    build();
+    gsMsg('Loaded '+out.beans.length+' beans at '+new Date().toLocaleTimeString()+'.'+shipNote+tierNote);
+    
+  }catch(e){
+    var c=e&&e.code,t;
+    if(c==='needs_reauth')t='Your Google connection needs to be renewed. Reconnect Google Sheets in claude.ai Settings, then press Refresh again.';
+    else if(c==='server_not_connected')t='Google Sheets is not connected. Add it in claude.ai Settings, under Connectors.';
+    else if(c==='not_in_manifest'||c==='approval_required'||c==='blocked_by_policy')t='This page is not allowed to read Google Sheets yet. Allow it when asked, then press Refresh again.';
+    else if(c==='tool_error'){
+      var det=((e&&e.message)||'')+' '+(function(){try{return JSON.stringify((e&&e.result)||'')}catch(x){return ''}})();
+      if(/403|permission|forbidden|denied|not have access|insufficient/i.test(det))t='You do not have access to this Google Sheet. Everyone who uses this page needs their own access. Ask the owner to share the sheet with the Google account connected to Claude, then press Refresh again.';
+      else if(/404|not found|requested entity/i.test(det))t='Google could not find this sheet. Check the link, or ask the owner to share it with your Google account.';
+      else t='Google could not read that sheet. Check the link and that your Google account can open it.';
+    }
+    else if(c==='not_public'){
+      if(GOOGLE_CLIENT_ID&&!MCP){t='This sheet is private. Sign in with Google to read it with your own access, or ask the owner to share it as “Anyone with the link can view”.';$('gssign').hidden=false}
+      else t='This sheet is not shared publicly. In Google Sheets choose Share, set General access to “Anyone with the link” as Viewer, then press Refresh again.';
+    }
+    else if(c==='api_expired'){t='Your Google sign-in expired. Sign in again to continue.';gToken=null;$('gssign').hidden=false}
+    else if(c==='api_denied'){t='Your Google account does not have access to this sheet. Ask the owner to share it with the account you signed in with, or sign in with a different account.';$('gssign').hidden=false}
+    else if(c==='api_disabled')t='The Google Sheets API is not turned on for this app yet. The app owner needs to enable it in Google Cloud.';
+    else if(c==='api_other')t='Google could not read that sheet. Make sure the link is a Google Sheet, not an uploaded Excel file.';
+    else if(c==='api_network')t='Could not reach Google. Check your connection and press Refresh again.';
+    else if(c==='signin_cancelled')t='Google sign-in was cancelled. Press the sign-in button to try again.';
+    else if(c==='signin_failed')t='Google sign-in did not finish. Allow pop-ups for this page, then try again.';
+    else if(c==='gis_unavailable')t='Could not load Google sign-in. Check your connection and try again.';
+    else if(c==='public_notfound')t='Google could not find this sheet. Check the link.';
+    else if(c==='public_unreachable')t='Could not read this sheet. Check your connection and the link, and make sure the sheet is shared as “Anyone with the link can view”.';
+    else if(c==='server_unavailable'||c==='upstream_error')t='Google Sheets did not respond. Wait a moment and press Refresh again.';
+    else t='Could not refresh ('+(c||'unknown error')+').';
+    gsMsg(t);
+  }finally{$('gsrefresh').disabled=false}
+}
+$('gsrefresh').onclick=function(){refreshFromSheet(false)};
+$('gssign').onclick=function(){refreshFromSheet(true)};
+if(GOOGLE_CLIENT_ID&&!(window.claude&&window.claude.use))loadGis().catch(function(){});
+
+
+/* ---------- input ---------- */
+function parseRows(rows){
+  var out=[];
+  rows.forEach(function(r){
+    var b=blank(),any=false;
+    Object.keys(r).forEach(function(h){var k=fieldFor(h);if(k){b[k]=normVal(k,r[h]);if(r[h]!=='')any=true}});
+    if(any)out.push(b);
+  });
+  return out;
+}
+$('file').addEventListener('change',function(e){
+  var f=e.target.files[0];if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{
+      var wb=XLSX.read(new Uint8Array(rd.result),{type:'array'});
+      var parsed=parseRows(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}));
+      if(!parsed.length){$('msg').textContent='No bean rows found. Check that the header row matches the template columns.';return}
+      mergeBeans(parsed);applyTiers(beans);$('msg').textContent='Loaded '+parsed.length+' beans from '+f.name+'.';build();
+    }catch(err){$('msg').textContent='Could not read that file. Try saving it as .xlsx or .csv.'}
+  };
+  rd.readAsArrayBuffer(f);e.target.value='';
+});
+$('sample').onclick=function(){
+  sheetShip=null;shipNoteUpdate();
+  function s(n,bc,bg,bags,cup,gpc,rp){var b=blank();b.name=n;b.bagCost=bc;b.bagGrams=bg;b.bags=bags;b.cupPrice=cup;b.gpc=gpc;b.retailPrice=rp;return b}
+  beans=[s('Sample Ethiopia washed',19,340,40,6.5,18,26),s('Sample Colombia',15,340,60,5.5,18,21),s('Sample Geisha',60,227,10,14,16,75)];
+  tiers[0].subs=8;tiers[1].subs=6;tiers[2].subs=3;
+  tiers[0].slots=['1'];tiers[1].slots=['0'];tiers[2].slots=['0','2'];$('ship').value=5;$('inship').value=120;
+  $('msg').textContent='Sample numbers are made up. Replace them with your own.';build();
+};
+$('add').onclick=function(){beans.push(blank());build()};
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.dataset.mg==='cup'){
+    var mb=beans[+t.dataset.i],mG=num(mb.bagGrams),mg=num(mb.gpc),mc=num(mb.bagCost),mm=num(t.value)/100;
+    if(t.value==='')mb.cupPrice='';
+    else if(mG>0&&mg>0&&mc>0&&mm>=0&&mm<1)mb.cupPrice=Math.ceil(mg*mc/mG/(1-mm)*100)/100;
+    var pin=document.querySelector('#inp input[data-i="'+t.dataset.i+'"][data-k="cupPrice"]');
+    if(pin)pin.value=mb.cupPrice;
+    update();return;
+  }
+  if(t.dataset.k!==undefined&&t.dataset.i!==undefined){if(t.tagName==='TEXTAREA'){t.value=t.value.replace(/\n/g,' ');autosize(t)}beans[+t.dataset.i][t.dataset.k]=t.value;update()}
+  else if(t.dataset.s!==undefined){tiers[+t.dataset.t].slots[+t.dataset.s]=t.value;update()}
+  else if(t.dataset.t!==undefined){tiers[+t.dataset.t][t.dataset.f]=t.value;update()}
+  else if(t.id==='sh'||t.id==='ship'||t.id==='inship'||t.id==='tm'){if(t.id==='inship')shipNoteUpdate();update()}
+});
+$('inp').addEventListener('click',function(e){var d=e.target.dataset.del;if(d===undefined)return;var di=+d;beans.splice(di,1);tiers.forEach(function(x){x.slots=x.slots.map(function(v){if(v==='')return '';return +v===di?'':(+v>di?String(+v-1):v)})});build()});
+document.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='TEXTAREA')e.preventDefault()});
+window.addEventListener('resize',autosizeAll);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(autosizeAll);
+beans=[blank()];build();
+</script>
+</body>
+</html>
