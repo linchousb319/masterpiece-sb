@@ -275,6 +275,8 @@ function mergeBeans(fresh){
   beans=fresh;
   tiers.forEach(function(x,k){x.slots=oldNames[k].map(function(n){if(n==='')return '';var i=-1;beans.forEach(function(b,j){if(i<0&&key(b.name)===n)i=j});return i<0?'':String(i)})});
 }
+/* A real bean row has a name plus at least one of bag cost, bag grams or bags purchased. Label rows such as "Total Shipping Cost" and the amount under it are not beans. */
+function isBeanRow(b){var n=String(b.name).toLowerCase().replace(/[^a-z0-9]/g,'');if(!n||/^total|shippingcost/.test(n))return false;return num(b.bagCost)>0||num(b.bagGrams)>0||num(b.bags)>0}
 function parseGrid(rows){
   var hi=-1,map=null,out={beans:[],ship:null};
   for(var i=0;i<rows.length&&hi<0;i++){
@@ -291,7 +293,7 @@ function parseGrid(rows){
       if(!name)break;
       var b=blank();
       Object.keys(map).forEach(function(k){var v=row[map[k]];b[k]=normVal(k,v===undefined?'':v)});
-      out.beans.push(b);
+      if(isBeanRow(b))out.beans.push(b);
     }
   }
   rows.forEach(function(row,ri){
@@ -454,7 +456,10 @@ async function refreshFromSheet(signIn){
     else if(c==='signin_failed')t='Google sign-in did not finish. Allow pop-ups for this page, then try again.';
     else if(c==='gis_unavailable')t='Could not load Google sign-in. Check your connection and try again.';
     else if(c==='public_notfound')t='Google could not find this sheet. Check the link.';
-    else if(c==='public_unreachable')t='Could not read this sheet. Check your connection and the link, and make sure the sheet is shared as “Anyone with the link can view”.';
+    else if(c==='public_unreachable'){
+      if(GOOGLE_CLIENT_ID&&!MCP){t='This sheet needs a sign-in, or the link may be wrong. Sign in with Google to read it with your own access. If it still fails, check the link.';$('gssign').hidden=false}
+      else t='Could not read this sheet. Check your connection and the link, and make sure the sheet is shared as “Anyone with the link can view”.';
+    }
     else if(c==='server_unavailable'||c==='upstream_error')t='Google Sheets did not respond. Wait a moment and press Refresh again.';
     else t='Could not refresh ('+(c||'unknown error')+').';
     gsMsg(t);
@@ -471,7 +476,7 @@ function parseRows(rows){
   rows.forEach(function(r){
     var b=blank(),any=false;
     Object.keys(r).forEach(function(h){var k=fieldFor(h);if(k){b[k]=normVal(k,r[h]);if(r[h]!=='')any=true}});
-    if(any)out.push(b);
+    if(any&&isBeanRow(b))out.push(b);
   });
   return out;
 }
