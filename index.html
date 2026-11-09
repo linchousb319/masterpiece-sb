@@ -143,6 +143,7 @@ td.best{background:var(--accbg);font-weight:600}
 <div><label for="hrTm">Target retail margin (%)</label><input id="hrTm" type="number" min="0" max="95" step="1" value="70"></div>
 <div><label for="hrTc">Target pour over margin (%)</label><input id="hrTc" type="number" min="0" max="95" step="1" value="80"></div>
 <div><label for="hrLoss">Roast loss for batches you didn't weigh (%)</label><input id="hrLoss" type="number" min="0" max="40" step="0.5" value="0"><div class="sub" style="margin:2px 0 0">0% means no loss. Weighed batches always use their real yield.</div></div>
+<div><label for="hrAllow">Testing &amp; profiling allowance (%)</label><input id="hrAllow" type="number" min="0" max="50" step="0.5" value="0"><div class="sub" style="margin:2px 0 0">For beans with no profiling roasts or test removals logged yet. Beans with logged testing use the real amounts.</div></div>
 <div><label for="hrRound">Round suggested prices up to</label><select id="hrRound"><option value="0.25">the next $0.25</option><option value="0.5" selected>the next $0.50</option><option value="1">the next whole dollar</option><option value="0.95">a price ending in .95</option></select></div>
 <div><label for="hrSizes">Bag sizes to compare (g)</label><input id="hrSizes" type="text" value="60, 100, 200"></div>
 <div><label for="hrGpc">Grams per cup</label><input id="hrGpc" type="number" min="1" step="0.5" value="15"></div>
@@ -580,18 +581,26 @@ function roundUp(p){var r=$('hrRound').value;if(!(p>0))return 0;if(r==='0.95')re
 function atMargin(cost,m){return m<1&&cost>0?roundUp(cost/(1-m)):0}
 function pctTxt(v){return v===null||!isFinite(v)?'—':Math.round(v*100)+'%'}
 function beanBy(n){for(var i=0;i<HR.beans.length;i++)if(HR.beans[i].name===n)return HR.beans[i];return null}
-/* cost per roasted gram for a bean, with the loss setting applied to batches nobody weighed */
+function hrAllow(){return Math.min(0.9,Math.max(0,hv('hrAllow')/100))}
+/* cost per SELLABLE roasted gram: production roasts (loss setting applies to batches nobody weighed),
+   plus profiling/test roasts and removed green or roasted coffee, all counted as loss */
 function beanCost(b){
-  var loss=hrLoss(),rg=0,cost=0,gg=0;
-  b.batches.forEach(function(x){var r=x.measured?x.roasted:x.green*(1-loss);rg+=r;cost+=x.cost;gg+=x.green});
-  if(rg>0)return {g:cost/rg,yield:rg/gg,basis:b.batches.some(function(x){return x.measured})?'weighed':'assumed'};
-  return {g:b.greenG/(1-loss),yield:1-loss,basis:'not roasted yet'};
+  var loss=hrLoss(),allow=hrAllow(),rg=0,cost=0,gg=0,tCost=0,tGreen=0;
+  b.batches.forEach(function(x){if(x.test){tCost+=x.cost;tGreen+=x.green;return}var r=x.measured?x.roasted:x.green*(1-loss);rg+=r;cost+=x.cost;gg+=x.green});
+  var gRem=b.greenRemoved||0,rRem=b.roastedRemoved||0,tested=tGreen+gRem+rRem>0;
+  tCost+=gRem*b.greenG+rRem*(rg>0?cost/rg:b.greenG/(1-loss));
+  var sell=rg-rRem,used=gg+tGreen+gRem;
+  if(sell>0){
+    var g=(cost+tCost)/sell;if(!tested)g/=(1-allow);
+    return {g:g,yield:sell/used*(tested?1:(1-allow)),basis:b.batches.some(function(x){return x.measured&&!x.test})?'weighed':'assumed',tested:tested,testPct:used>0?(tGreen+gRem+rRem)/used:0,stockYield:rg/(gg||1)};
+  }
+  return {g:b.greenG/(1-loss)/(1-allow),yield:(1-loss)*(1-allow),basis:'not roasted yet',tested:false,testPct:0,stockYield:1-loss};
 }
 function partsOf(p){return p.parts.filter(function(x){return x.bean!==''}).map(function(x,i,a){var pc=x.pct===''?(a.length===1?1:0):pnum(x.pct);return {bean:x.bean,pct:pc}})}
 function blendCost(parts){var c=0,miss=false;parts.forEach(function(x){var b=beanBy(x.bean);if(!b){miss=true;return}c+=x.pct*beanCost(b).g});return miss?null:c}
 function stockGrams(parts){
   var m=Infinity;
-  parts.forEach(function(x){if(!(x.pct>0))return;var b=beanBy(x.bean);if(!b){m=0;return}var avail=Math.max(0,b.roastedHand)+Math.max(0,b.greenLeft)*beanCost(b).yield;m=Math.min(m,avail/x.pct)});
+  parts.forEach(function(x){if(!(x.pct>0))return;var b=beanBy(x.bean);if(!b){m=0;return}var avail=Math.max(0,b.roastedHand)+Math.max(0,b.greenLeft)*beanCost(b).stockYield;m=Math.min(m,avail/x.pct)});
   return m===Infinity?0:m;
 }
 
@@ -615,6 +624,7 @@ function hrSettings(rows){
   if((v=get('default bag size'))!==null)s.bag=num(v);
   for(var t=0;t<3;t++){if((v=get('tier '+(t+1)+' price'))!==null)s.tiers[t][0]=num(v);if((v=get('tier '+(t+1)+' bags'))!==null)s.tiers[t][1]=num(v)}
   if((v=get('subscription shipping'))!==null)s.subShip=num(v);
+  if((v=get('testing & profiling allowance'))!==null){s.allow=pnum(v);if(s.allow>=1)s.allow/=100;$('hrAllow').value=Math.round(s.allow*1000)/10}
   if((v=get('online retail shipping'))!==null)s.online=num(v);
   if((v=get('default grams per cup'))!==null)s.gpc=num(v);
   $('hrLoss').value=Math.round((1-s.yield)*1000)/10;$('hrGpc').value=s.gpc;$('hrShip').value=s.online;$('hrSubShip').value=s.subShip;
@@ -623,8 +633,8 @@ function hrSettings(rows){
 function hrBuildBeans(lots,roasts,beansTab){
   var map={},list=[];
   lots.forEach(function(r){var n=String(r[1]||'').trim();if(!n)return;var g=num(r[11]);if(!map[n]){map[n]={name:n,grams:0,landed:0,greenLeft:0,roastedHand:0,batches:[]};list.push(map[n])}map[n].grams+=g;map[n].landed+=num(r[12]);map[n].greenLeft+=num(r[16])});
-  roasts.forEach(function(r){var n=String(r[2]||'').trim();if(!map[n]||!num(r[8]))return;map[n].batches.push({green:num(r[8]),roasted:num(r[9]),cost:num(r[12]),measured:String(r[11]||'').toLowerCase()==='measured'})});
-  beansTab.forEach(function(r){var n=String(r[0]||'').trim();if(map[n])map[n].roastedHand=num(r[11])});
+  roasts.forEach(function(r){var n=String(r[2]||'').trim();if(!map[n]||!num(r[8]))return;map[n].batches.push({green:num(r[8]),roasted:num(r[9]),cost:num(r[12]),measured:String(r[11]||'').toLowerCase()==='measured',test:/profil|test/i.test(String(r[14]||''))})});
+  beansTab.forEach(function(r){var n=String(r[0]||'').trim();if(map[n]){map[n].roastedHand=num(r[11]);map[n].greenRemoved=Math.max(0,num(r[13]));map[n].roastedRemoved=Math.max(0,num(r[14]))}});
   list.forEach(function(b){b.greenG=b.grams>0?b.landed/b.grams:0});
   return list.filter(function(b){return b.greenG>0});
 }
@@ -646,7 +656,7 @@ async function loadHouse(){
     await mcpP;
     var lots=await getTab(raw,id,'Green Lots','A1:R300');
     if(!lots.length||String(lots[0][1]||'').toLowerCase()!=='bean'){$('hrMsg').textContent='This sheet has no Green Lots tab in the expected layout, so the house roast planner has nothing to load. The slow bar view above is unaffected.';return}
-    var res=await Promise.all([getTab(raw,id,'Roast Batches','A1:N1000').catch(function(){return []}),getTab(raw,id,'Beans','A1:L300').catch(function(){return []}),getTab(raw,id,'Products','A1:O200').catch(function(){return []}),getTab(raw,id,'Settings','A1:C60').catch(function(){return []})]);
+    var res=await Promise.all([getTab(raw,id,'Roast Batches','A1:O1000').catch(function(){return []}),getTab(raw,id,'Beans','A1:R300').catch(function(){return []}),getTab(raw,id,'Products','A1:O200').catch(function(){return []}),getTab(raw,id,'Settings','A1:C60').catch(function(){return []})]);
     hrSettings(tabRows(res[3]));
     HR.beans=hrBuildBeans(tabRows(lots),tabRows(res[0]),tabRows(res[1]));
     HR.products=hrProducts(tabRows(res[2]));
@@ -660,7 +670,7 @@ async function loadHouse(){
 }
 $('hrSample').onclick=function(){
   function b(n,perLb,left,hand,batches){return {name:n,greenG:perLb/453.592,greenLeft:left,roastedHand:hand,batches:batches||[]}}
-  HR.beans=[b('Sample Ethiopia natural',8.25,40000,1500,[{green:4536,roasted:3856,cost:82.5,measured:true}]),b('Sample Colombia washed',6.5,25000,0),b('Sample Yunnan honey',10.04,18000,800,[{green:2268,roasted:2268,cost:50.2,measured:false}]),b('Sample Panama gesha',79.4,1800,0)];
+  HR.beans=[b('Sample Ethiopia natural',8.25,40000,1500,[{green:4536,roasted:3856,cost:82.5,measured:true},{green:300,roasted:255,cost:5.46,measured:true,test:true}]),b('Sample Colombia washed',6.5,25000,0),b('Sample Yunnan honey',10.04,18000,800,[{green:2268,roasted:2268,cost:50.2,measured:false}]),b('Sample Panama gesha',79.4,1800,0)];
   HR.products=[];var p=newDraft();p.name='Sample House Blend';p.parts[0]={bean:'Sample Colombia washed',pct:'60%'};p.parts[1]={bean:'Sample Ethiopia natural',pct:'40%'};p.bag=100;p.storeP=12;p.onlineP=14;p.gpc=15;p.cupP=5;HR.products.push(p);
   HR.loaded=true;$('hrMsg').textContent='Sample beans are made up. Refresh from your Google Sheet to use your own.';hrBuild();
 };
@@ -668,7 +678,7 @@ $('hrSample').onclick=function(){
 /* ---------- rendering ---------- */
 function opt(sel){return '<option value="">Choose a bean</option>'+HR.beans.map(function(b){return '<option'+(b.name===sel?' selected':'')+'>'+esc(b.name)+'</option>'}).join('')}
 function hrBuild(){
-  var p='<tr><th>Bean</th><th>Share of the product</th><th>Cost per roasted g</th><th>Cost basis</th><th>Stock on hand</th></tr>';
+  var p='<tr><th>Bean</th><th>Share of the product</th><th>Cost per sellable g</th><th>Cost basis</th><th>Stock on hand</th></tr>';
   draft.parts.forEach(function(x,i){p+='<tr><td><select data-part="'+i+'" aria-label="Bean '+(i+1)+'">'+opt(x.bean)+'</select></td><td><input type="text" inputmode="decimal" data-pct="'+i+'" value="'+esc(x.pct)+'" placeholder="'+(i===0?'e.g. 50':'')+'" aria-label="Share for bean '+(i+1)+'"></td><td id="pc_'+i+'"></td><td id="pb_'+i+'"></td><td id="ps_'+i+'"></td></tr>'});
   $('hrParts').innerHTML=p;
   var sz=hrSizes();if(draft.use===null||sz.indexOf(draft.use)<0)draft.use=sz.indexOf(HR.set.bag)>=0?HR.set.bag:sz[0];
@@ -685,11 +695,11 @@ function hrUpdate(){
   var tm=hv('hrTm')/100,tc=hv('hrTc')/100,ship=hv('hrShip'),gpc=hv('hrGpc')||HR.set.gpc;
   /* price list */
   var sz=hrSizes(),sorted=HR.beans.slice().sort(function(a,b){return beanCost(a).g-beanCost(b).g});
-  var m='<tr><th>Bean</th><th>Cost per roasted g</th><th>Green on hand</th><th>Roasted on hand</th>'+sz.map(function(g){return '<th>'+g+' g bag</th>'}).join('')+'<th>Cup ('+gpc+' g)</th><th></th></tr>';
+  var m='<tr><th>Bean</th><th>Cost per sellable g</th><th>Green on hand</th><th>Roasted on hand</th>'+sz.map(function(g){return '<th>'+g+' g bag</th>'}).join('')+'<th>Cup ('+gpc+' g)</th><th></th></tr>';
   if(!HR.beans.length)m+='<tr><td colspan="'+(6+sz.length)+'" class="note">No beans loaded yet. Refresh from your Google Sheet, or try the sample beans.</td></tr>';
   sorted.forEach(function(b){
     var c=beanCost(b);
-    m+='<tr><td class="bean">'+esc(b.name)+'</td><td>$'+c.g.toFixed(4)+'<div class="note" style="margin:0">'+c.basis+(c.basis!=='not roasted yet'?', '+Math.round(c.yield*100)+'% yield':'')+'</div></td><td>'+kg(b.greenLeft)+'</td><td>'+kg(b.roastedHand)+'</td>'+sz.map(function(g){var k=c.g*g;return '<td><b>'+money(atMargin(k,tm))+'</b><div class="note" style="margin:0">cost '+money(k)+'</div></td>'}).join('')+'<td><b>'+money(atMargin(c.g*gpc,tc))+'</b><div class="note" style="margin:0">cost '+money(c.g*gpc)+'</div></td><td><button data-plan="'+esc(b.name)+'">Plan</button></td></tr>';
+    m+='<tr><td class="bean">'+esc(b.name)+'</td><td>$'+c.g.toFixed(4)+'<div class="note" style="margin:0">'+c.basis+(c.basis!=='not roasted yet'?', '+Math.round(c.yield*100)+'% sellable':'')+(c.tested?' \u00b7 '+Math.round(c.testPct*100)+'% to testing':'')+'</div></td><td>'+kg(b.greenLeft)+'</td><td>'+kg(b.roastedHand)+'</td>'+sz.map(function(g){var k=c.g*g;return '<td><b>'+money(atMargin(k,tm))+'</b><div class="note" style="margin:0">cost '+money(k)+'</div></td>'}).join('')+'<td><b>'+money(atMargin(c.g*gpc,tc))+'</b><div class="note" style="margin:0">cost '+money(c.g*gpc)+'</div></td><td><button data-plan="'+esc(b.name)+'">Plan</button></td></tr>';
   });
   $('hrMatrix').innerHTML=m;
 
@@ -697,7 +707,7 @@ function hrUpdate(){
   var parts=partsOf(draft),bc=parts.length?blendCost(parts):null,tot=0;
   draft.parts.forEach(function(x,i){
     var b=x.bean?beanBy(x.bean):null,c=b?beanCost(b):null;
-    cell('pc_'+i,c?'$'+c.g.toFixed(4):'');cell('pb_'+i,c?c.basis:'');cell('ps_'+i,b?kg(b.greenLeft)+' green · '+kg(b.roastedHand)+' roasted':'');
+    cell('pc_'+i,c?'$'+c.g.toFixed(4):'');cell('pb_'+i,c?c.basis+(c.tested?', incl. '+Math.round(c.testPct*100)+'% testing':''):'');cell('ps_'+i,b?kg(b.greenLeft)+' green · '+kg(b.roastedHand)+' roasted':'');
   });
   parts.forEach(function(x){tot+=x.pct});
   var note='';
@@ -760,7 +770,7 @@ document.addEventListener('input',function(e){var t=e.target;
   else if(t.dataset.online!==undefined){draft.online[num(t.dataset.online)]=t.value;hrUpdate()}
   else if(t.id==='dCup'){draft.cup=t.value;hrUpdate()}
   else if(t.id==='dName'){draft.name=t.value}
-  else if(/^hr(Tm|Tc|Loss|Gpc|Ship|SubShip)$/.test(t.id)){hrUpdate()}
+  else if(/^hr(Tm|Tc|Loss|Allow|Gpc|Ship|SubShip)$/.test(t.id)){hrUpdate()}
 });
 $('hrClear').onclick=function(){draft=newDraft();hrBuild();$('hrCopyMsg').textContent='Copies the product with the bag size and prices above. Paste it into the first empty row of the Products tab.';$('hrCopyBox').hidden=true};
 $('hrCopy').onclick=function(){
