@@ -630,10 +630,13 @@ function hrSettings(rows){
   $('hrLoss').value=Math.round((1-s.yield)*1000)/10;$('hrGpc').value=s.gpc;$('hrShip').value=s.online;$('hrSubShip').value=s.subShip;
   var sizes=hrSizes();if(sizes.indexOf(s.bag)<0){sizes.push(s.bag);sizes.sort(function(a,b){return a-b});$('hrSizes').value=sizes.join(', ')}
 }
-function hrBuildBeans(lots,roasts,beansTab){
-  var map={},list=[];
+/* find a column by its header text, so moving columns in the sheet doesn't break the app */
+function colOf(head,re,fallback){for(var i=0;i<(head||[]).length;i++){if(re.test(String(head[i]||'').toLowerCase()))return i}return fallback}
+function hrBuildBeans(lots,roastGrid,beansTab){
+  var map={},list=[],rh=(roastGrid||[])[0]||[],roasts=tabRows(roastGrid);
+  var RB={bean:colOf(rh,/^bean/,2),green:colOf(rh,/^green in g/,9),roasted:colOf(rh,/^roasted out g/,10),basis:colOf(rh,/^yield basis/,12),cost:colOf(rh,/^green cost/,13),purpose:colOf(rh,/^purpose/,8)};
   lots.forEach(function(r){var n=String(r[1]||'').trim();if(!n)return;var g=num(r[11]);if(!map[n]){map[n]={name:n,grams:0,landed:0,greenLeft:0,roastedHand:0,batches:[]};list.push(map[n])}map[n].grams+=g;map[n].landed+=num(r[12]);map[n].greenLeft+=num(r[16])});
-  roasts.forEach(function(r){var n=String(r[2]||'').trim();if(!map[n]||!num(r[8]))return;map[n].batches.push({green:num(r[8]),roasted:num(r[9]),cost:num(r[12]),measured:String(r[11]||'').toLowerCase()==='measured',test:/profil|test/i.test(String(r[14]||''))})});
+  roasts.forEach(function(r){var n=String(r[RB.bean]||'').trim();if(!map[n]||!num(r[RB.green]))return;map[n].batches.push({green:num(r[RB.green]),roasted:num(r[RB.roasted]),cost:num(r[RB.cost]),measured:String(r[RB.basis]||'').toLowerCase()==='measured',test:/profil|test/i.test(String(r[RB.purpose]||''))})});
   beansTab.forEach(function(r){var n=String(r[0]||'').trim();if(map[n]){map[n].roastedHand=num(r[11]);map[n].greenRemoved=Math.max(0,num(r[13]));map[n].roastedRemoved=Math.max(0,num(r[14]))}});
   list.forEach(function(b){b.greenG=b.grams>0?b.landed/b.grams:0});
   return list.filter(function(b){return b.greenG>0});
@@ -658,7 +661,7 @@ async function loadHouse(){
     if(!lots.length||String(lots[0][1]||'').toLowerCase()!=='bean'){$('hrMsg').textContent='This sheet has no Green Lots tab in the expected layout, so the house roast planner has nothing to load. The slow bar view above is unaffected.';return}
     var res=await Promise.all([getTab(raw,id,'Roast Batches','A1:O1000').catch(function(){return []}),getTab(raw,id,'Beans','A1:R300').catch(function(){return []}),getTab(raw,id,'Products','A1:O200').catch(function(){return []}),getTab(raw,id,'Settings','A1:C60').catch(function(){return []})]);
     hrSettings(tabRows(res[3]));
-    HR.beans=hrBuildBeans(tabRows(lots),tabRows(res[0]),tabRows(res[1]));
+    HR.beans=hrBuildBeans(tabRows(lots),res[0],tabRows(res[1]));
     HR.products=hrProducts(tabRows(res[2]));
     HR.loaded=true;
     $('hrMsg').textContent='Loaded '+HR.beans.length+' beans and '+HR.products.length+' products at '+new Date().toLocaleTimeString()+'. Settings tab values filled in below; change them here to try other numbers.';
