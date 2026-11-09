@@ -1,16 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Coffee Profit by Channel</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#eef1ee;--panel:#fbfcfb;--ink:#1d2a2c;--mute:#5b6a6d;--line:#d3dbd7;--acc:#1f6f6b;--accbg:#d9ebe8;--pos:#2b7a4b;--neg:#b3403a;
+:root{--bg:#eef1ee;--panel:#fbfcfb;--ink:#1d2a2c;--mute:#5b6a6d;--line:#d3dbd7;--acc:#1f6f6b;--accbg:#d9ebe8;--pos:#2b7a4b;--neg:#b3403a;--amb:#9a6512;--ambbg:#f6e8cf;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141b1c;--panel:#1c2527;--ink:#e6eeec;--mute:#93a3a5;--line:#2f3c3e;--acc:#6cc3bb;--accbg:#22403e;--pos:#6fcf94;--neg:#ee8a83}}
-:root[data-theme="dark"]{--bg:#141b1c;--panel:#1c2527;--ink:#e6eeec;--mute:#93a3a5;--line:#2f3c3e;--acc:#6cc3bb;--accbg:#22403e;--pos:#6fcf94;--neg:#ee8a83}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141b1c;--panel:#1c2527;--ink:#e6eeec;--mute:#93a3a5;--line:#2f3c3e;--acc:#6cc3bb;--accbg:#22403e;--pos:#6fcf94;--neg:#ee8a83;--amb:#e6b45f;--ambbg:#3d3220}}
+:root[data-theme="dark"]{--bg:#141b1c;--panel:#1c2527;--ink:#e6eeec;--mute:#93a3a5;--line:#2f3c3e;--acc:#6cc3bb;--accbg:#22403e;--pos:#6fcf94;--neg:#ee8a83;--amb:#e6b45f;--ambbg:#3d3220}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,sans-serif}
@@ -50,21 +46,33 @@ td.best{background:var(--accbg);font-weight:600}
 .note{color:var(--mute);font-size:13px;margin:8px 0 0}
 .warn{color:var(--neg);font-size:13px;margin:6px 0 0}
 .del{padding:4px 9px}
+.views{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px}
+.views a{font-weight:600;text-decoration:none;color:var(--ink);border:1px solid var(--line);background:var(--panel);padding:8px 14px;border-radius:999px}
+.views a[aria-current="page"]{background:var(--acc);border-color:var(--acc);color:var(--bg)}
+.views a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.warnc{color:var(--amb)}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--ambbg);color:var(--amb);white-space:nowrap}
+#hrMatrix td,#hrProd td{vertical-align:top}
+#hrParts select{min-width:200px;max-width:320px}
 </style>
-</head>
-<body>
 <main>
 <h1>Slow Bar Profit Analysis</h1>
-<p class="lead">Enter what you bought, assign beans to subscription tiers, then decide how many of the remaining bags go to retail and pour over. Totals update as you type.</p>
+<p class="lead">Two views on one sheet: the slow bar coffee you buy already roasted, and the products you roast in-house. Refresh once to load both.</p>
+<section>
+<h2>Your Google Sheet</h2>
+<div id="gsbox">
+<div class="ctl" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:6px"><div><label for="gsurl">Google Sheet link</label><input id="gsurl" type="text" value="https://docs.google.com/spreadsheets/d/1VcJfCYqq0xC2copRqH4S--t0S4Nw7cjK1r108nxElIs/edit"></div><button id="gsrefresh" class="pri">Refresh from Google Sheet</button></div>
+<div class="ctl" style="max-width:520px;margin-bottom:6px"><div><label for="gstab">Slow bar tab</label><select id="gstab"><option value="">Press Refresh to list the tabs</option></select><input id="gstabtxt" type="text" placeholder="Type the tab name, e.g. S22 (blank = first tab)" hidden><div class="sub" id="gstabnote" style="margin:2px 0 0">Pick this month’s slow bar tab. Switching tabs reloads the slow bar view. The house roast tabs are always read by name.</div></div></div>
+<div class="sub" style="margin:0 0 6px">Anyone can refresh from a sheet shared as “Anyone with the link can view”. Inside Claude, a sheet shared only with you works too.</div>
+<div class="sub" id="gsmsg" role="status"></div>
+</div>
+</section>
+<nav class="views" aria-label="Views"><a href="#slow-bar" data-v="slow">Slow bar (bought roasted)</a><a href="#house-roast" data-v="house">House roast products</a></nav>
+<div id="v-slow">
 
 <section>
 <h2>1. Bean cost</h2>
 <p class="sub">Refresh from your Google Sheet (a supplier invoice or the starter sheet), load a .xlsx or .csv, or type into the table. Cup price and grams per cup are not on supplier invoices, so enter them here once; they are kept when you refresh. Retail bags are assumed to be the same size you buy.</p>
-<div id="gsbox">
-<div class="ctl" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:6px"><div><label for="gsurl">Google Sheet link</label><input id="gsurl" type="text" value="" placeholder="Paste a Google Sheets link" autocomplete="off"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="gsrefresh" class="pri">Refresh from Google Sheet</button><button id="gssign" hidden>Sign in with Google and refresh</button></div></div>
-<div class="sub" style="margin:0 0 6px">Paste a link to your Google Sheet and press Refresh. A sheet shared as “Anyone with the link can view” loads right away. For a private sheet, sign in with Google and the app reads it with your own access.</div>
-<div class="sub" id="gsmsg" role="status"></div>
-</div>
 <div class="bar">
 <label class="btn pri">Load spreadsheet<input id="file" type="file" accept=".xlsx,.xls,.csv" hidden></label>
 <button id="sample">Load sample beans</button>
@@ -108,7 +116,62 @@ td.best{background:var(--accbg);font-weight:600}
 <p class="sub">Profit from 100 g of the same bean in each channel, using the prices above. Subscriptions are left out because their bags and prices are fixed.</p>
 <div class="wrap"><table id="cmp"></table></div>
 </section>
-<p class="note" id="ver" style="text-align:center">App version 6 (Oct 27, shipping rows fix)</p>
+</div>
+<div id="v-house" hidden>
+<section>
+<h2>House roast product planner</h2>
+<p class="sub">Decide which products to make, which bag size, and what to charge. Bean costs come from the Green Lots and Roast Batches tabs of your sheet. Prices are suggested from the margin you aim for, and you can type your own to see the margin it gives.</p>
+<div class="bar"><button id="hrSample">Try with sample beans</button></div>
+<div class="sub" id="hrMsg" role="status">Press Refresh from Google Sheet above to load your beans.</div>
+<div class="ctl">
+<div><label for="hrTm">Target retail margin (%)</label><input id="hrTm" type="number" min="0" max="95" step="1" value="70"></div>
+<div><label for="hrTc">Target pour over margin (%)</label><input id="hrTc" type="number" min="0" max="95" step="1" value="80"></div>
+<div><label for="hrLoss">Roast loss for batches you didn't weigh (%)</label><input id="hrLoss" type="number" min="0" max="40" step="0.5" value="0"><div class="sub" style="margin:2px 0 0">0% means no loss. Weighed batches always use their real yield.</div></div>
+<div><label for="hrRound">Round suggested prices up to</label><select id="hrRound"><option value="0.25">the next $0.25</option><option value="0.5" selected>the next $0.50</option><option value="1">the next whole dollar</option><option value="0.95">a price ending in .95</option></select></div>
+<div><label for="hrSizes">Bag sizes to compare (g)</label><input id="hrSizes" type="text" value="60, 100, 200"></div>
+<div><label for="hrGpc">Grams per cup</label><input id="hrGpc" type="number" min="1" step="0.5" value="15"></div>
+<div><label for="hrShip">Online shipping per order ($)</label><input id="hrShip" type="number" min="0" step="0.05" value="0"></div>
+<div><label for="hrSubShip">Subscription shipping per subscriber ($)</label><input id="hrSubShip" type="number" min="0" step="0.05" value="0"></div>
+</div>
+</section>
+
+<section>
+<h2>Price list at your target margin</h2>
+<p class="sub">Every bean, cheapest first, priced for each bag size and per cup. The small figure is the bean cost; the bold one is the price that hits your target margin. Choose Plan to build a product from a bean.</p>
+<div class="wrap"><table id="hrMatrix"></table></div>
+</section>
+
+<section>
+<h2>Build a product</h2>
+<p class="sub">Pick one bean for a single origin, or up to four with percentages for a post-roast blend. Leave a price box blank to use the suggested price.</p>
+<div class="ctl" style="max-width:520px;margin-bottom:6px"><div><label for="dName">Product name</label><input id="dName" type="text" placeholder="e.g. House Blend"></div></div>
+<div class="wrap"><table id="hrParts"></table></div>
+<p class="note" id="hrBlend"></p>
+
+<h3>Retail bags</h3>
+<p class="sub">Break-even is the price where a bag just covers its beans. Stock is roasted coffee on hand plus what your green on hand would roast into. Payback is how many bags you need to sell to earn back the cost of all that stock. Pick the size you will sell with Use.</p>
+<div class="wrap"><table id="hrSizesT"></table></div>
+
+<h3>Pour over</h3>
+<div class="wrap"><table id="hrCupT"></table></div>
+
+<h3>Subscriptions</h3>
+<p class="sub">What each tier earns if this product fills its bags, at the bag size you picked above.</p>
+<div class="wrap"><table id="hrSubT"></table></div>
+
+<h3>Save it to your sheet</h3>
+<div class="ctl" style="max-width:520px;margin-bottom:8px"><div><label for="dTier">Subscription tier for this product</label><select id="dTier"><option value="">Not in a tier</option><option value="1">Tier 1 (Tier 3 also gets it)</option><option value="2">Tier 2 (Tier 3 also gets it)</option></select></div></div>
+<div class="bar"><button id="hrCopy" class="pri">Copy row for the Products tab</button><button id="hrClear">Start a new product</button></div>
+<p class="sub" id="hrCopyMsg" role="status">Copies the product with the bag size and prices above. Paste it into the first empty row of the Products tab.</p>
+<textarea id="hrCopyBox" class="nm" rows="2" readonly hidden aria-label="Products row to copy"></textarea>
+</section>
+
+<section>
+<h2>Your products</h2>
+<p class="sub">Products from the Products tab, costed with the same bean costs. Margins under your target are flagged.</p>
+<div class="wrap"><table id="hrProd"></table></div>
+</section>
+</div>
 </main>
 
 <script>
@@ -135,7 +198,7 @@ function cupBase(b){return has(b.cupPrice)?num(b.cupPrice):suggestCup(b)}
 function field(k,id,i,step,extra){return '<td><input id="'+id+i+'" type="number" min="0" step="'+step+'" data-i="'+i+'" data-k="'+k+'" value="'+String(extra[k])+'"></td>'}
 
 /* ---------- structure ---------- */
-function esc(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function esc(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function nameCell(b,i,label){return '<td><textarea class="nm" rows="1" data-i="'+i+'" data-k="name" aria-label="'+label+' row '+(i+1)+'">'+esc(b.name)+'</textarea></td>'}
 function autosize(el){el.style.height='auto';if(el.scrollHeight>0)el.style.height=(el.scrollHeight+el.offsetHeight-el.clientHeight)+'px'}
 function autosizeAll(){document.querySelectorAll('#inp textarea.nm').forEach(autosize)}
@@ -276,8 +339,6 @@ function mergeBeans(fresh){
   beans=fresh;
   tiers.forEach(function(x,k){x.slots=oldNames[k].map(function(n){if(n==='')return '';var i=-1;beans.forEach(function(b,j){if(i<0&&key(b.name)===n)i=j});return i<0?'':String(i)})});
 }
-/* A real bean row has a name plus at least one of bag cost, bag grams or bags purchased. Label rows such as "Total Shipping Cost" and the amount under it are not beans. */
-function isBeanRow(b){var n=String(b.name).toLowerCase().replace(/[^a-z0-9]/g,'');if(!n||/^total|shippingcost/.test(n))return false;return num(b.bagCost)>0||num(b.bagGrams)>0||num(b.bags)>0}
 function parseGrid(rows){
   var hi=-1,map=null,out={beans:[],ship:null};
   for(var i=0;i<rows.length&&hi<0;i++){
@@ -294,7 +355,7 @@ function parseGrid(rows){
       if(!name)break;
       var b=blank();
       Object.keys(map).forEach(function(k){var v=row[map[k]];b[k]=normVal(k,v===undefined?'':v)});
-      if(isBeanRow(b))out.beans.push(b);
+      out.beans.push(b);
     }
   }
   rows.forEach(function(row,ri){
@@ -331,23 +392,6 @@ function shipNoteUpdate(){
 }
 var MCP=null;
 function gsMsg(t){$('gsmsg').textContent=t}
-/* To let people read private sheets, paste your Google OAuth client ID here (see the setup steps). Leave it empty to support only sheets shared as "Anyone with the link can view". */
-var GOOGLE_CLIENT_ID='1003289898886-dvje7im7k7rvbitrdd59qr76j8ssc359.apps.googleusercontent.com';
-var gToken=null,gTokenExp=0;
-function gTokenOk(){return !!gToken&&Date.now()<gTokenExp}
-function loadGis(){return new Promise(function(res,rej){
-  if(window.google&&window.google.accounts&&window.google.accounts.oauth2)return res();
-  var sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;
-  sc.onload=function(){res()};sc.onerror=function(){rej(gerr('gis_unavailable'))};document.head.appendChild(sc);
-})}
-function getToken(){return new Promise(function(res,rej){
-  var tc=window.google.accounts.oauth2.initTokenClient({
-    client_id:GOOGLE_CLIENT_ID,scope:'https://www.googleapis.com/auth/spreadsheets.readonly',
-    callback:function(r){if(r&&r.error)rej(gerr(r.error==='access_denied'?'signin_cancelled':'signin_failed'));else{gToken=r.access_token;gTokenExp=Date.now()+((r.expires_in||3600)-60)*1000;res()}},
-    error_callback:function(e){rej(gerr(e&&e.type==='popup_closed'?'signin_cancelled':'signin_failed'))}
-  });
-  tc.requestAccessToken({prompt:'select_account'});
-})}
 var mcpP=(window.claude&&window.claude.use)?window.claude.use('mcp').then(function(m){MCP=m||null;return MCP}).catch(function(){return null}):Promise.resolve(null);
 function parseCsv(t){
   var rows=[],row=[],f='',q=false;
@@ -364,13 +408,13 @@ function parseCsv(t){
 }
 function gerr(code){var e=new Error(code);e.code=code;return e}
 /* Reads a sheet shared as "Anyone with the link" (or published to the web) without any sign-in */
-async function fetchPublic(raw,id){
-  var gm=/[#&?]gid=(\d+)/.exec(raw),gid=gm?'&gid='+gm[1]:'';
+async function fetchPublic(raw,id,tab){
+  var gm=/[#&?]gid=(\d+)/.exec(raw),gid=tab?'&sheet='+encodeURIComponent(tab):(gm?'&gid='+gm[1]:'');
   var urls=[],pm=/(https:\/\/docs\.google\.com\/spreadsheets\/d\/e\/[^\/?#]+)/.exec(raw);
-  if(pm)urls.push(pm[1]+'/pub?output=csv'+gid);
+  if(pm)urls.push(pm[1]+'/pub?output=csv'+(tab?'':gid));
   else{
     urls.push('https://docs.google.com/spreadsheets/d/'+id+'/gviz/tq?tqx=out:csv'+gid);
-    urls.push('https://docs.google.com/spreadsheets/d/'+id+'/export?format=csv'+gid);
+    if(!tab)urls.push('https://docs.google.com/spreadsheets/d/'+id+'/export?format=csv'+gid);
   }
   for(var i=0;i<urls.length;i++){
     var res;
@@ -384,46 +428,44 @@ async function fetchPublic(raw,id){
   }
   throw gerr('public_unreachable');
 }
-/* Reads the sheet with the signed-in person's own Google access */
-async function fetchApi(raw,id){
-  var gm=/[#&?]gid=(\d+)/.exec(raw),range='A1:Z100',opt={headers:{Authorization:'Bearer '+gToken}};
-  async function call(u){
-    var r;
-    try{r=await fetch(u,opt)}catch(x){throw gerr('api_network')}
-    if(r.ok)return r.json();
-    var b=null;try{b=await r.json()}catch(x){}
-    var m=(b&&b.error&&b.error.message)||'';
-    if(r.status===401)throw gerr('api_expired');
-    if(r.status===404)throw gerr('public_notfound');
-    if(r.status===403)throw gerr(/has not been used|disabled|SERVICE_DISABLED/i.test(m)?'api_disabled':'api_denied');
-    throw gerr('api_other');
-  }
-  if(gm){
-    var meta=await call('https://sheets.googleapis.com/v4/spreadsheets/'+id+'?fields=sheets.properties(sheetId,title)');
-    var sh=(meta.sheets||[]).filter(function(x){return String(x.properties.sheetId)===gm[1]})[0];
-    if(sh)range="'"+sh.properties.title.replace(/'/g,"''")+"'!A1:Z100";
-  }
-  var d=await call('https://sheets.googleapis.com/v4/spreadsheets/'+id+'/values/'+encodeURIComponent(range));
-  return d.values||[];
+var HOUSE_TABS=['settings','green lots','roast batches','beans','products','usage','adjustments'];
+function tabKey(id){return 'gstab:'+id}
+function savedTab(id){try{return localStorage.getItem(tabKey(id))||''}catch(e){return ''}}
+function saveTab(id,t){try{localStorage.setItem(tabKey(id),t)}catch(e){}}
+async function listTabs(id){
+  var res=await MCP.callTool('Google Sheets','get_spreadsheet',{spreadsheetId:id,fields:['sheets.properties.title']},{cache:false});
+  var p=res.payload;if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){p=null}}
+  return ((p&&p.sheets)||[]).map(function(x){return x.properties&&x.properties.title}).filter(function(t){return t&&HOUSE_TABS.indexOf(t.trim().toLowerCase())<0});
 }
-async function refreshFromSheet(signIn){
+function fillTabs(tabs,pick){
+  var sel=$('gstab');
+  sel.innerHTML=tabs.map(function(t){return '<option'+(t===pick?' selected':'')+'>'+esc(t)+'</option>'}).join('')||'<option value="">No slow bar tabs found</option>';
+}
+function tabMode(){var list=!!MCP&&!/\/spreadsheets\/d\/e\//.test($('gsurl').value);$('gstab').hidden=!list;$('gstabtxt').hidden=list}
+mcpP.then(tabMode);
+var lastTab='';function lastTabTry(){return $('gstab').hidden?$('gstabtxt').value.trim():$('gstab').value}
+async function refreshFromSheet(){
   var raw=$('gsurl').value.trim(),isPub=/\/spreadsheets\/d\/e\//.test(raw),lm=/\/d\/([a-zA-Z0-9_-]+)/.exec(raw);
   var id=isPub?'pub':(lm?lm[1]:(/^[a-zA-Z0-9_-]{20,}$/.test(raw)?raw:null));
   if(!id){gsMsg('Paste the full Google Sheets link.');return}
-  $('gsrefresh').disabled=true;$('gssign').hidden=true;gsMsg('Reading the sheet…');
+  $('gsrefresh').disabled=true;gsMsg('Reading the sheet…');
   try{
     await mcpP;
-    var grid;
-    if(signIn&&!MCP){await loadGis();await getToken()}
+    var grid,tab='';tabMode();
     if(MCP&&!isPub){
-      var res=await MCP.callTool('Google Sheets','get_values',{spreadsheetId:id,range:'A1:Z100'},{cache:false});
+      var tabs=null;try{tabs=await listTabs(id)}catch(x){tabs=null}
+      if(tabs&&tabs.length){
+        var cur=$('gstab').value;tab=tabs.indexOf(cur)>=0?cur:(tabs.indexOf(savedTab(id))>=0?savedTab(id):tabs[0]);
+        fillTabs(tabs,tab);
+      }else if(tabs){fillTabs([], '');gsMsg('This sheet has no slow bar tab. Every tab is a house roast tab (Settings, Green Lots, and so on).');return}
+      var res=await MCP.callTool('Google Sheets','get_values',{spreadsheetId:id,range:tab?"'"+tab.replace(/'/g,"''")+"'!A1:Z100":'A1:Z100'},{cache:false});
       var p=res.payload;
       if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){p=null}}
       grid=p&&p.values?p.values:[];
-    }else if(!isPub&&gTokenOk())grid=await fetchApi(raw,id);
-    else grid=await fetchPublic(raw,id);
+    }else{tab=$('gstabtxt').value.trim();if(isPub&&tab){gsMsg('A published-to-web link can only read its first tab. Use the sheet\u2019s normal link to pick a tab.');return}grid=await fetchPublic(raw,id,tab)}
+    lastTab=tab;if(tab)saveTab(id,tab);
     var out=parseGrid(grid);
-    if(!out.beans.length){gsMsg('I read the sheet but found no bean rows. The first tab needs a header row with a bean name, bag cost (or wholesale price), bag grams (or size), and bags (or quantity).');return}
+    if(!out.beans.length){gsMsg('I read '+(tab?'the tab \u201c'+tab+'\u201d':'the first tab')+' but found no bean rows. It needs a header row with a bean name, bag cost (or wholesale price), bag grams (or size), and bags (or quantity). If this month\u2019s beans are on another tab, pick it above.');return}
     mergeBeans(out.beans);
     var tr=applyTiers(beans),tierNote='';
     if(tr)tierNote=' Subscription tiers set from the sheet: Tier 1 gets '+(tr.t1||'no bean yet')+', Tier 2 gets '+(tr.t2||'no bean yet')+', Tier 3 gets both.';
@@ -431,8 +473,8 @@ async function refreshFromSheet(signIn){
     if(out.ship>0){$('inship').value=out.ship;sheetShip=out.ship;shipNoteUpdate();shipNote=' Shipping cost set to '+money(out.ship)+' from the sheet.'}
     else if(out.ship===0){shipNote=' The sheet lists shipping as $0.00, so the shipping box was left as you had it.'}
     build();
-    gsMsg('Loaded '+out.beans.length+' beans at '+new Date().toLocaleTimeString()+'.'+shipNote+tierNote);
-    
+    gsMsg('Loaded '+out.beans.length+' beans'+(tab?' from the tab \u201c'+tab+'\u201d':'')+' at '+new Date().toLocaleTimeString()+'.'+shipNote+tierNote);
+    try{localStorage.setItem('gsurl2',raw)}catch(e){}
   }catch(e){
     var c=e&&e.code,t;
     if(c==='needs_reauth')t='Your Google connection needs to be renewed. Reconnect Google Sheets in claude.ai Settings, then press Refresh again.';
@@ -441,35 +483,21 @@ async function refreshFromSheet(signIn){
     else if(c==='tool_error'){
       var det=((e&&e.message)||'')+' '+(function(){try{return JSON.stringify((e&&e.result)||'')}catch(x){return ''}})();
       if(/403|permission|forbidden|denied|not have access|insufficient/i.test(det))t='You do not have access to this Google Sheet. Everyone who uses this page needs their own access. Ask the owner to share the sheet with the Google account connected to Claude, then press Refresh again.';
+      else if(/parse range|unable to parse/i.test(det))t='There is no tab named \u201c'+lastTabTry()+'\u201d in this sheet. Pick another tab and try again.';
       else if(/404|not found|requested entity/i.test(det))t='Google could not find this sheet. Check the link, or ask the owner to share it with your Google account.';
       else t='Google could not read that sheet. Check the link and that your Google account can open it.';
     }
-    else if(c==='not_public'){
-      if(GOOGLE_CLIENT_ID&&!MCP){t='This sheet is private. Sign in with Google to read it with your own access, or ask the owner to share it as “Anyone with the link can view”.';$('gssign').hidden=false}
-      else t='This sheet is not shared publicly. In Google Sheets choose Share, set General access to “Anyone with the link” as Viewer, then press Refresh again.';
-    }
-    else if(c==='api_expired'){t='Your Google sign-in expired. Sign in again to continue.';gToken=null;$('gssign').hidden=false}
-    else if(c==='api_denied'){t='Your Google account does not have access to this sheet. Ask the owner to share it with the account you signed in with, or sign in with a different account.';$('gssign').hidden=false}
-    else if(c==='api_disabled')t='The Google Sheets API is not turned on for this app yet. The app owner needs to enable it in Google Cloud.';
-    else if(c==='api_other')t='Google could not read that sheet. Make sure the link is a Google Sheet, not an uploaded Excel file.';
-    else if(c==='api_network')t='Could not reach Google. Check your connection and press Refresh again.';
-    else if(c==='signin_cancelled')t='Google sign-in was cancelled. Press the sign-in button to try again.';
-    else if(c==='signin_failed')t='Google sign-in did not finish. Allow pop-ups for this page, then try again.';
-    else if(c==='gis_unavailable')t='Could not load Google sign-in. Check your connection and try again.';
+    else if(c==='not_public')t='This sheet is not shared publicly. In Google Sheets choose Share, set General access to “Anyone with the link” as Viewer, then press Refresh again.';
     else if(c==='public_notfound')t='Google could not find this sheet. Check the link.';
-    else if(c==='public_unreachable'){
-      if(GOOGLE_CLIENT_ID&&!MCP){t='This sheet needs a sign-in, or the link may be wrong. Sign in with Google to read it with your own access. If it still fails, check the link.';$('gssign').hidden=false}
-      else t='Could not read this sheet. Check your connection and the link, and make sure the sheet is shared as “Anyone with the link can view”.';
-    }
+    else if(c==='public_unreachable'&&lastTabTry())t='Could not read the tab \u201c'+lastTabTry()+'\u201d. Check the tab name matches the sheet exactly, and that the sheet is shared as \u201cAnyone with the link can view\u201d.';
+    else if(c==='public_unreachable')t='Could not read this sheet. Check your connection and the link, and make sure the sheet is shared as “Anyone with the link can view”.';
     else if(c==='server_unavailable'||c==='upstream_error')t='Google Sheets did not respond. Wait a moment and press Refresh again.';
     else t='Could not refresh ('+(c||'unknown error')+').';
     gsMsg(t);
   }finally{$('gsrefresh').disabled=false}
 }
-$('gsrefresh').onclick=function(){refreshFromSheet(false)};
-$('gssign').onclick=function(){refreshFromSheet(true)};
-if(GOOGLE_CLIENT_ID&&!(window.claude&&window.claude.use))loadGis().catch(function(){});
 
+try{var saved=localStorage.getItem('gsurl2');if(saved)$('gsurl').value=saved}catch(e){}
 
 /* ---------- input ---------- */
 function parseRows(rows){
@@ -477,7 +505,7 @@ function parseRows(rows){
   rows.forEach(function(r){
     var b=blank(),any=false;
     Object.keys(r).forEach(function(h){var k=fieldFor(h);if(k){b[k]=normVal(k,r[h]);if(r[h]!=='')any=true}});
-    if(any&&isBeanRow(b))out.push(b);
+    if(any)out.push(b);
   });
   return out;
 }
@@ -523,6 +551,225 @@ document.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tag
 window.addEventListener('resize',autosizeAll);
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(autosizeAll);
 beans=[blank()];build();
+/* ================= House roast product planner ================= */
+var HR={beans:[],products:[],set:{yield:1,bag:100,tiers:[[30,1],[50,1],[72,2]],subShip:0,online:0,gpc:15},loaded:false};
+var draft=newDraft();
+function newDraft(){return {name:'',parts:[{bean:'',pct:''},{bean:'',pct:''},{bean:'',pct:''},{bean:'',pct:''}],store:{},online:{},use:null,cup:'',tier:''}}
+function pnum(v){var s=String(v).trim();var n=num(s);return (/%/.test(s)||n>1)?n/100:n}
+function hv(id){return num($(id).value)}
+function hrSizes(){var a=$('hrSizes').value.split(/[^0-9.]+/).map(num).filter(function(x){return x>0});return a.length?a:[HR.set.bag]}
+function hrLoss(){return Math.min(0.9,Math.max(0,hv('hrLoss')/100))}
+function roundUp(p){var r=$('hrRound').value;if(!(p>0))return 0;if(r==='0.95')return Math.ceil(p+0.05)-0.05;var s=num(r);return Math.ceil(p/s-1e-9)*s}
+function atMargin(cost,m){return m<1&&cost>0?roundUp(cost/(1-m)):0}
+function pctTxt(v){return v===null||!isFinite(v)?'—':Math.round(v*100)+'%'}
+function beanBy(n){for(var i=0;i<HR.beans.length;i++)if(HR.beans[i].name===n)return HR.beans[i];return null}
+/* cost per roasted gram for a bean, with the loss setting applied to batches nobody weighed */
+function beanCost(b){
+  var loss=hrLoss(),rg=0,cost=0,gg=0;
+  b.batches.forEach(function(x){var r=x.measured?x.roasted:x.green*(1-loss);rg+=r;cost+=x.cost;gg+=x.green});
+  if(rg>0)return {g:cost/rg,yield:rg/gg,basis:b.batches.some(function(x){return x.measured})?'weighed':'assumed'};
+  return {g:b.greenG/(1-loss),yield:1-loss,basis:'not roasted yet'};
+}
+function partsOf(p){return p.parts.filter(function(x){return x.bean!==''}).map(function(x,i,a){var pc=x.pct===''?(a.length===1?1:0):pnum(x.pct);return {bean:x.bean,pct:pc}})}
+function blendCost(parts){var c=0,miss=false;parts.forEach(function(x){var b=beanBy(x.bean);if(!b){miss=true;return}c+=x.pct*beanCost(b).g});return miss?null:c}
+function stockGrams(parts){
+  var m=Infinity;
+  parts.forEach(function(x){if(!(x.pct>0))return;var b=beanBy(x.bean);if(!b){m=0;return}var avail=Math.max(0,b.roastedHand)+Math.max(0,b.greenLeft)*beanCost(b).yield;m=Math.min(m,avail/x.pct)});
+  return m===Infinity?0:m;
+}
+
+/* ---------- loading ---------- */
+function tabRows(rows){return (rows||[]).slice(1).filter(function(r){return r&&String(r[0]===undefined?'':r[0]).trim()!==''||(r&&String(r[1]===undefined?'':r[1]).trim()!=='')})}
+async function getTab(raw,id,tab,range){
+  if(MCP&&id!=='pub'){
+    var res=await MCP.callTool('Google Sheets','get_values',{spreadsheetId:id,range:"'"+tab+"'!"+range},{cache:false});
+    var p=res.payload;if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){p=null}}
+    return p&&p.values?p.values:[];
+  }
+  var res2=await fetch('https://docs.google.com/spreadsheets/d/'+id+'/gviz/tq?tqx=out:csv&headers=1&sheet='+encodeURIComponent(tab),{credentials:'omit'});
+  if(!res2.ok)throw gerr('not_public');
+  var t=(await res2.text()).replace(/^﻿/,'');if(/^\s*</.test(t))throw gerr('not_public');
+  return parseCsv(t);
+}
+function hrSettings(rows){
+  var s=HR.set,get=function(lbl){for(var i=0;i<rows.length;i++){var k=String(rows[i][0]||'').toLowerCase();if(k.indexOf(lbl)===0&&rows[i][1]!==undefined&&String(rows[i][1]).trim()!=='')return rows[i][1]}return null};
+  var v;
+  if((v=get('default roast yield'))!==null){s.yield=pnum(v);if(s.yield>1.5)s.yield/=100}
+  if((v=get('default bag size'))!==null)s.bag=num(v);
+  for(var t=0;t<3;t++){if((v=get('tier '+(t+1)+' price'))!==null)s.tiers[t][0]=num(v);if((v=get('tier '+(t+1)+' bags'))!==null)s.tiers[t][1]=num(v)}
+  if((v=get('subscription shipping'))!==null)s.subShip=num(v);
+  if((v=get('online retail shipping'))!==null)s.online=num(v);
+  if((v=get('default grams per cup'))!==null)s.gpc=num(v);
+  $('hrLoss').value=Math.round((1-s.yield)*1000)/10;$('hrGpc').value=s.gpc;$('hrShip').value=s.online;$('hrSubShip').value=s.subShip;
+  var sizes=hrSizes();if(sizes.indexOf(s.bag)<0){sizes.push(s.bag);sizes.sort(function(a,b){return a-b});$('hrSizes').value=sizes.join(', ')}
+}
+function hrBuildBeans(lots,roasts,beansTab){
+  var map={},list=[];
+  lots.forEach(function(r){var n=String(r[1]||'').trim();if(!n)return;var g=num(r[11]);if(!map[n]){map[n]={name:n,grams:0,landed:0,greenLeft:0,roastedHand:0,batches:[]};list.push(map[n])}map[n].grams+=g;map[n].landed+=num(r[12]);map[n].greenLeft+=num(r[16])});
+  roasts.forEach(function(r){var n=String(r[2]||'').trim();if(!map[n]||!num(r[8]))return;map[n].batches.push({green:num(r[8]),roasted:num(r[9]),cost:num(r[12]),measured:String(r[11]||'').toLowerCase()==='measured'})});
+  beansTab.forEach(function(r){var n=String(r[0]||'').trim();if(map[n])map[n].roastedHand=num(r[11])});
+  list.forEach(function(b){b.greenG=b.grams>0?b.landed/b.grams:0});
+  return list.filter(function(b){return b.greenG>0});
+}
+function hrProducts(rows){
+  return rows.filter(function(r){return String(r[0]||'').trim()!==''}).map(function(r){
+    var p=newDraft();p.name=String(r[0]).trim();
+    for(var i=0;i<4;i++){p.parts[i].bean=String(r[1+i*2]||'').trim();p.parts[i].pct=String(r[2+i*2]===undefined?'':r[2+i*2]).trim()}
+    p.bag=num(r[9])||'';p.storeP=String(r[10]||'').trim()?num(r[10]):'';p.onlineP=String(r[11]||'').trim()?num(r[11]):'';p.gpc=num(r[12])||'';p.cupP=String(r[13]||'').trim()?num(r[13]):'';p.tier=String(r[14]||'').trim();
+    return p;
+  });
+}
+async function loadHouse(){
+  var raw=$('gsurl').value.trim(),isPub=/\/spreadsheets\/d\/e\//.test(raw),lm=/\/d\/([a-zA-Z0-9_-]+)/.exec(raw);
+  var id=isPub?'pub':(lm?lm[1]:(/^[a-zA-Z0-9_-]{20,}$/.test(raw)?raw:null));
+  if(!id)return;
+  if(isPub){$('hrMsg').textContent='The house roast planner needs the sheet’s normal link (…/spreadsheets/d/…), not a published-to-web link.';return}
+  $('hrMsg').textContent='Reading Green Lots, Roast Batches, Products and Settings…';
+  try{
+    await mcpP;
+    var lots=await getTab(raw,id,'Green Lots','A1:R300');
+    if(!lots.length||String(lots[0][1]||'').toLowerCase()!=='bean'){$('hrMsg').textContent='This sheet has no Green Lots tab in the expected layout, so the house roast planner has nothing to load. The slow bar view above is unaffected.';return}
+    var res=await Promise.all([getTab(raw,id,'Roast Batches','A1:N1000').catch(function(){return []}),getTab(raw,id,'Beans','A1:L300').catch(function(){return []}),getTab(raw,id,'Products','A1:O200').catch(function(){return []}),getTab(raw,id,'Settings','A1:C60').catch(function(){return []})]);
+    hrSettings(tabRows(res[3]));
+    HR.beans=hrBuildBeans(tabRows(lots),tabRows(res[0]),tabRows(res[1]));
+    HR.products=hrProducts(tabRows(res[2]));
+    HR.loaded=true;
+    $('hrMsg').textContent='Loaded '+HR.beans.length+' beans and '+HR.products.length+' products at '+new Date().toLocaleTimeString()+'. Settings tab values filled in below; change them here to try other numbers.';
+    hrBuild();
+  }catch(e){
+    var c=e&&e.code;
+    $('hrMsg').textContent=c==='not_public'?'This sheet is not shared publicly, so the house roast tabs could not be read. Share it as “Anyone with the link” (Viewer), then refresh.':(c==='tool_error'?'Google would not return the house roast tabs. Check that your Google account can open this sheet.':'Could not read the house roast tabs ('+(c||'unknown error')+').');
+  }
+}
+$('hrSample').onclick=function(){
+  function b(n,perLb,left,hand,batches){return {name:n,greenG:perLb/453.592,greenLeft:left,roastedHand:hand,batches:batches||[]}}
+  HR.beans=[b('Sample Ethiopia natural',8.25,40000,1500,[{green:4536,roasted:3856,cost:82.5,measured:true}]),b('Sample Colombia washed',6.5,25000,0),b('Sample Yunnan honey',10.04,18000,800,[{green:2268,roasted:2268,cost:50.2,measured:false}]),b('Sample Panama gesha',79.4,1800,0)];
+  HR.products=[];var p=newDraft();p.name='Sample House Blend';p.parts[0]={bean:'Sample Colombia washed',pct:'60%'};p.parts[1]={bean:'Sample Ethiopia natural',pct:'40%'};p.bag=100;p.storeP=12;p.onlineP=14;p.gpc=15;p.cupP=5;HR.products.push(p);
+  HR.loaded=true;$('hrMsg').textContent='Sample beans are made up. Refresh from your Google Sheet to use your own.';hrBuild();
+};
+
+/* ---------- rendering ---------- */
+function opt(sel){return '<option value="">Choose a bean</option>'+HR.beans.map(function(b){return '<option'+(b.name===sel?' selected':'')+'>'+esc(b.name)+'</option>'}).join('')}
+function hrBuild(){
+  var p='<tr><th>Bean</th><th>Share of the product</th><th>Cost per roasted g</th><th>Cost basis</th><th>Stock on hand</th></tr>';
+  draft.parts.forEach(function(x,i){p+='<tr><td><select data-part="'+i+'" aria-label="Bean '+(i+1)+'">'+opt(x.bean)+'</select></td><td><input type="text" inputmode="decimal" data-pct="'+i+'" value="'+esc(x.pct)+'" placeholder="'+(i===0?'e.g. 50':'')+'" aria-label="Share for bean '+(i+1)+'"></td><td id="pc_'+i+'"></td><td id="pb_'+i+'"></td><td id="ps_'+i+'"></td></tr>'});
+  $('hrParts').innerHTML=p;
+  var sz=hrSizes();if(draft.use===null||sz.indexOf(draft.use)<0)draft.use=sz.indexOf(HR.set.bag)>=0?HR.set.bag:sz[0];
+  var s='<tr><th>Bag</th><th>Bean cost</th><th>Break-even price</th><th>Suggested in-store</th><th>Your in-store price</th><th>Margin</th><th>Profit per bag</th><th>Suggested online</th><th>Your online price</th><th>Online margin</th><th>Bags from stock</th><th>Bags to pay back stock</th><th>Use</th></tr>';
+  sz.forEach(function(g,i){s+='<tr><td class="bean">'+g+' g</td><td id="sc'+i+'"></td><td id="sb'+i+'"></td><td id="ss'+i+'"></td><td><input type="number" min="0" step="0.25" id="sp'+'x'+i+'" data-store="'+g+'" value="'+(draft.store[g]===undefined?'':draft.store[g])+'" aria-label="In-store price, '+g+' g bag"></td><td id="sm'+i+'"></td><td id="sf'+i+'"></td><td id="so'+i+'"></td><td><input type="number" min="0" step="0.25" id="op'+i+'" data-online="'+g+'" value="'+(draft.online[g]===undefined?'':draft.online[g])+'" aria-label="Online price, '+g+' g bag"></td><td id="om'+i+'"></td><td id="sk'+i+'"></td><td id="sy'+i+'"></td><td><input type="radio" name="hrUse" value="'+g+'"'+(g===draft.use?' checked':'')+' aria-label="Use '+g+' g bags"></td></tr>'});
+  $('hrSizesT').innerHTML=s;
+  $('hrCupT').innerHTML='<tr><th>Grams per cup</th><th>Bean cost per cup</th><th>Suggested price</th><th>Your price per cup</th><th>Margin</th><th>Profit per cup</th><th>Cups from stock</th></tr><tr><td id="cg"></td><td id="cc"></td><td id="cs"></td><td><input type="number" min="0" step="0.25" id="dCup" value="'+esc(draft.cup)+'" aria-label="Your price per cup"></td><td id="cm"></td><td id="cf"></td><td id="ck"></td></tr>';
+  $('dName').value=draft.name;$('dTier').value=draft.tier;
+  hrUpdate();
+}
+function cell(id,html,c){var e=$(id);if(e){e.innerHTML=html;e.className=c||''}}
+function mClass(m,t){return m===null?'':(m<0?'neg':(m<t?'warnc':'pos'))}
+function hrUpdate(){
+  var tm=hv('hrTm')/100,tc=hv('hrTc')/100,ship=hv('hrShip'),gpc=hv('hrGpc')||HR.set.gpc;
+  /* price list */
+  var sz=hrSizes(),sorted=HR.beans.slice().sort(function(a,b){return beanCost(a).g-beanCost(b).g});
+  var m='<tr><th>Bean</th><th>Cost per roasted g</th><th>Green on hand</th><th>Roasted on hand</th>'+sz.map(function(g){return '<th>'+g+' g bag</th>'}).join('')+'<th>Cup ('+gpc+' g)</th><th></th></tr>';
+  if(!HR.beans.length)m+='<tr><td colspan="'+(6+sz.length)+'" class="note">No beans loaded yet. Refresh from your Google Sheet, or try the sample beans.</td></tr>';
+  sorted.forEach(function(b){
+    var c=beanCost(b);
+    m+='<tr><td class="bean">'+esc(b.name)+'</td><td>$'+c.g.toFixed(4)+'<div class="note" style="margin:0">'+c.basis+(c.basis!=='not roasted yet'?', '+Math.round(c.yield*100)+'% yield':'')+'</div></td><td>'+kg(b.greenLeft)+'</td><td>'+kg(b.roastedHand)+'</td>'+sz.map(function(g){var k=c.g*g;return '<td><b>'+money(atMargin(k,tm))+'</b><div class="note" style="margin:0">cost '+money(k)+'</div></td>'}).join('')+'<td><b>'+money(atMargin(c.g*gpc,tc))+'</b><div class="note" style="margin:0">cost '+money(c.g*gpc)+'</div></td><td><button data-plan="'+esc(b.name)+'">Plan</button></td></tr>';
+  });
+  $('hrMatrix').innerHTML=m;
+
+  /* builder */
+  var parts=partsOf(draft),bc=parts.length?blendCost(parts):null,tot=0;
+  draft.parts.forEach(function(x,i){
+    var b=x.bean?beanBy(x.bean):null,c=b?beanCost(b):null;
+    cell('pc_'+i,c?'$'+c.g.toFixed(4):'');cell('pb_'+i,c?c.basis:'');cell('ps_'+i,b?kg(b.greenLeft)+' green · '+kg(b.roastedHand)+' roasted':'');
+  });
+  parts.forEach(function(x){tot+=x.pct});
+  var note='';
+  if(!parts.length)note='Pick at least one bean, or choose Plan in the price list.';
+  else{note=(parts.length>1?'Blend':'Single origin')+' cost per roasted gram: <b>'+(bc===null?'—':'$'+bc.toFixed(4))+'</b>.';if(Math.abs(tot-1)>0.001)note+=' <span class="neg">Shares add up to '+Math.round(tot*100)+'%; they need to add up to 100%.</span>'}
+  $('hrBlend').innerHTML=note;
+  var ok=bc!==null&&parts.length&&Math.abs(tot-1)<=0.001,stock=ok?stockGrams(parts):0;
+  sz.forEach(function(g,i){
+    if(!ok){['sc','sb','ss','sm','sf','so','om','sk','sy'].forEach(function(k){cell(k+i,'—')});return}
+    var k=bc*g,sug=atMargin(k,tm),pr=draft.store[g]!==undefined&&draft.store[g]!==''?num(draft.store[g]):sug;
+    var osug=atMargin(k+ship,tm),opr=draft.online[g]!==undefined&&draft.online[g]!==''?num(draft.online[g]):(draft.store[g]!==undefined&&draft.store[g]!==''?pr:osug);
+    var mg=pr>0?(pr-k)/pr:null,omg=opr>0?(opr-k-ship)/opr:null,bags=Math.floor(stock/g),pay=pr>0?Math.ceil(bags*k/pr):null;
+    cell('sc'+i,money(k));cell('sb'+i,money(k));cell('ss'+i,money(sug));
+    $('spx'+i).placeholder=sug?sug.toFixed(2):'';$('op'+i).placeholder=opr?opr.toFixed(2):'';
+    cell('sm'+i,pctTxt(mg),mClass(mg,tm));cell('sf'+i,money(pr-k),cls(pr-k));cell('so'+i,money(osug));cell('om'+i,pctTxt(omg),mClass(omg,tm));
+    cell('sk'+i,int(bags));cell('sy'+i,pay===null?'—':int(pay)+' of '+int(bags));
+  });
+  var cc=ok?bc*gpc:0,csug=ok?atMargin(cc,tc):0,cpr=draft.cup!==''?num(draft.cup):csug,cmg=ok&&cpr>0?(cpr-cc)/cpr:null;
+  cell('cg',gpc+' g');cell('cc',ok?money(cc):'—');cell('cs',ok?money(csug):'—');$('dCup').placeholder=csug?csug.toFixed(2):'';
+  cell('cm',pctTxt(cmg),mClass(cmg,tc));cell('cf',ok?money(cpr-cc):'—',ok?cls(cpr-cc):'');cell('ck',ok?int(Math.floor(stock/gpc)):'—');
+  /* subscriptions */
+  var sh=hv('hrSubShip'),bag=draft.use,t='<tr><th>Tier</th><th>Price per month</th><th>Bags</th><th>Bean cost</th><th>Shipping</th><th>Profit per subscriber</th><th>Margin</th></tr>';
+  HR.set.tiers.forEach(function(x,i){
+    var cost=ok?bc*bag*x[1]:0,pf=x[0]-cost-sh,mg=ok&&x[0]>0?pf/x[0]:null;
+    t+='<tr><td class="bean">Tier '+(i+1)+'</td><td>'+money(x[0])+'</td><td>'+x[1]+' × '+bag+' g</td><td>'+(ok?money(cost):'—')+'</td><td>'+money(sh)+'</td><td class="'+(ok?cls(pf):'')+'">'+(ok?money(pf):'—')+'</td><td class="'+mClass(mg,tm)+'">'+pctTxt(mg)+'</td></tr>';
+  });
+  $('hrSubT').innerHTML=t+'<tr><td colspan="7" class="note">Tier 3 normally gets the Tier 1 and Tier 2 products. This row assumes both of its bags are this product.</td></tr>';
+  /* your products */
+  var q='<tr><th>Product</th><th>Beans</th><th>Cost per roasted g</th><th>Bag</th><th>Bag cost</th><th>In-store price</th><th>Margin</th><th>Online price</th><th>Online margin</th><th>Cup price</th><th>Cup margin</th><th></th></tr>';
+  if(!HR.products.length)q+='<tr><td colspan="12" class="note">No products in the Products tab yet. Build one above and copy it into the sheet.</td></tr>';
+  HR.products.forEach(function(p,i){
+    var ps=partsOf(p),c=ps.length?blendCost(ps):null,g=p.bag||HR.set.bag,k=c===null?null:c*g,cg=p.gpc||HR.set.gpc;
+    var sp=p.storeP===''?null:p.storeP,op=p.onlineP===''?sp:p.onlineP,cp=p.cupP===''?null:p.cupP;
+    var m1=k!==null&&sp>0?(sp-k)/sp:null,m2=k!==null&&op>0?(op-k-ship)/op:null,m3=c!==null&&cp>0?(cp-c*cg)/cp:null;
+    function flag(v,t){return '<td class="'+mClass(v,t)+'">'+pctTxt(v)+(v!==null&&v<t?' <span class="pill">under target</span>':'')+'</td>'}
+    q+='<tr><td class="bean">'+esc(p.name)+'</td><td>'+ps.map(function(x){return esc(x.bean)+(ps.length>1?' '+Math.round(x.pct*100)+'%':'')}).join('<br>')+(c===null&&ps.length?'<div class="warn">Bean not found in Green Lots</div>':'')+'</td><td>'+(c===null?'—':'$'+c.toFixed(4))+'</td><td>'+g+' g</td><td>'+(k===null?'—':money(k))+'</td><td>'+(sp===null?'—':money(sp))+'</td>'+flag(m1,tm)+'<td>'+(op===null?'—':money(op))+'</td>'+flag(m2,tm)+'<td>'+(cp===null?'—':money(cp))+'</td>'+flag(m3,tc)+'<td><button data-edit="'+i+'">Edit</button></td></tr>';
+  });
+  $('hrProd').innerHTML=q;
+}
+function kg(g){return g>=1000?(Math.round(g/100)/10).toLocaleString()+' kg':int(g)+' g'}
+
+/* ---------- interactions ---------- */
+document.addEventListener('click',function(e){
+  var t=e.target;
+  if(t.dataset.plan!==undefined){draft=newDraft();draft.name=t.dataset.plan;draft.parts[0].bean=t.dataset.plan;hrBuild();$('dName').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});return}
+  if(t.dataset.edit!==undefined){var p=HR.products[+t.dataset.edit];draft=newDraft();draft.name=p.name;draft.parts=p.parts.map(function(x){return {bean:x.bean,pct:x.pct}});draft.use=p.bag||HR.set.bag;
+    if(hrSizes().indexOf(draft.use)<0){$('hrSizes').value=hrSizes().concat([draft.use]).sort(function(a,b){return a-b}).join(', ')}
+    if(p.storeP!=='')draft.store[draft.use]=p.storeP;if(p.onlineP!=='')draft.online[draft.use]=p.onlineP;if(p.cupP!=='')draft.cup=String(p.cupP);if(p.gpc)$('hrGpc').value=p.gpc;draft.tier=p.tier;hrBuild();$('dName').scrollIntoView({block:'center'});return}
+});
+document.addEventListener('change',function(e){var t=e.target;
+  if(t.dataset.part!==undefined){draft.parts[+t.dataset.part].bean=t.value;hrUpdate()}
+  else if(t.name==='hrUse'){draft.use=num(t.value);hrUpdate()}
+  else if(t.id==='hrSizes'){hrBuild()}
+  else if(t.id==='dTier'){draft.tier=t.value}
+  else if(t.id==='hrRound'){hrUpdate()}
+});
+document.addEventListener('input',function(e){var t=e.target;
+  if(t.dataset.pct!==undefined){draft.parts[+t.dataset.pct].pct=t.value;hrUpdate()}
+  else if(t.dataset.store!==undefined){draft.store[num(t.dataset.store)]=t.value;hrUpdate()}
+  else if(t.dataset.online!==undefined){draft.online[num(t.dataset.online)]=t.value;hrUpdate()}
+  else if(t.id==='dCup'){draft.cup=t.value;hrUpdate()}
+  else if(t.id==='dName'){draft.name=t.value}
+  else if(/^hr(Tm|Tc|Loss|Gpc|Ship|SubShip)$/.test(t.id)){hrUpdate()}
+});
+$('hrClear').onclick=function(){draft=newDraft();hrBuild();$('hrCopyMsg').textContent='Copies the product with the bag size and prices above. Paste it into the first empty row of the Products tab.';$('hrCopyBox').hidden=true};
+$('hrCopy').onclick=function(){
+  var parts=partsOf(draft),bc=blendCost(parts),tot=parts.reduce(function(a,x){return a+x.pct},0);
+  if(!draft.name.trim()||!parts.length||bc===null||Math.abs(tot-1)>0.001){$('hrCopyMsg').textContent='Give the product a name and beans whose shares add up to 100% first.';return}
+  var g=draft.use,tm=hv('hrTm')/100,k=bc*g,sp=draft.store[g]!==undefined&&draft.store[g]!==''?num(draft.store[g]):atMargin(k,tm);
+  var op=draft.online[g]!==undefined&&draft.online[g]!==''?num(draft.online[g]):(draft.store[g]!==undefined&&draft.store[g]!==''?sp:atMargin(k+hv('hrShip'),tm));
+  var gpc=hv('hrGpc')||HR.set.gpc,cp=draft.cup!==''?num(draft.cup):atMargin(bc*gpc,hv('hrTc')/100);
+  var row=[draft.name.trim()];for(var i=0;i<4;i++){var x=parts[i];row.push(x?x.bean:'',x?(parts.length===1?'':Math.round(x.pct*1000)/10+'%'):'')}
+  row.push(g,sp.toFixed(2),op.toFixed(2),gpc,cp.toFixed(2),draft.tier);
+  var txt=row.join('\t'),box=$('hrCopyBox');box.value=txt;
+  function shown(){box.hidden=false;autosize(box);box.focus();box.select();$('hrCopyMsg').textContent='Copying was blocked here, so the row is selected below. Copy it, then paste it into the first empty row of the Products tab.'}
+  try{navigator.clipboard.writeText(txt).then(function(){box.hidden=true;$('hrCopyMsg').textContent='Copied '+draft.name.trim()+' ('+g+' g, '+money(sp)+' in-store). Paste it into the first empty row of the Products tab, in column A.'},shown)}catch(err){shown()}
+};
+
+/* ---------- views ---------- */
+function showView(){var h=location.hash==='#house-roast'?'house':'slow';$('v-slow').hidden=h!=='slow';$('v-house').hidden=h!=='house';document.querySelectorAll('.views a').forEach(function(a){a.setAttribute('aria-current',a.dataset.v===h?'page':'false')});if(h==='house')autosizeAll()}
+window.addEventListener('hashchange',showView);
+$('gsrefresh').onclick=async function(){await refreshFromSheet();await loadHouse()};
+$('gstab').addEventListener('change',function(){refreshFromSheet()});
+$('gstabtxt').addEventListener('change',function(){refreshFromSheet()});
+$('gsurl').addEventListener('change',function(){$('gstab').innerHTML='<option value="">Press Refresh to list the tabs</option>';$('gstabtxt').value='';tabMode()});
+showView();hrBuild();
+
 </script>
-</body>
-</html>
+
+
+</body></html>
+</body></html>
