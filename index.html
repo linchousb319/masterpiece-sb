@@ -1,5 +1,9 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Coffee Profit by Channel</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Slow Bar Profit Analysis</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Instrument+Sans:wght@400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -55,15 +59,27 @@ td.best{background:var(--accbg);font-weight:600}
 #hrMatrix td,#hrProd td{vertical-align:top}
 #hrParts select{min-width:200px;max-width:320px}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
 <main>
 <h1>Slow Bar Profit Analysis</h1>
 <p class="lead">Two views on one sheet: the slow bar coffee you buy already roasted, and the products you roast in-house. Refresh once to load both.</p>
+<section id="signin">
+<h2>Sign in to continue</h2>
+<p class="sub">This app reads your Google Sheets as you, so it can only open sheets your Google account already has access to. It only reads; it never changes your sheets.</p>
+<div class="bar"><button id="gsignin" class="pri">Sign in with Google</button></div>
+<p class="sub" id="authmsg" role="status"></p>
+</section>
+<div id="whoami" class="sub" hidden>Signed in as <b id="whoemail"></b> · <button id="gsignout" class="del">Sign out</button></div>
+<div id="gated" hidden>
 <section>
 <h2>Your Google Sheet</h2>
 <div id="gsbox">
-<div class="ctl" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:6px"><div><label for="gsurl">Google Sheet link</label><input id="gsurl" type="text" value="https://docs.google.com/spreadsheets/d/1VcJfCYqq0xC2copRqH4S--t0S4Nw7cjK1r108nxElIs/edit"></div><button id="gsrefresh" class="pri">Refresh from Google Sheet</button></div>
+<div class="ctl" style="grid-template-columns:1fr auto;align-items:end;margin-bottom:6px"><div><label for="gsurl">Google Sheet link</label><input id="gsurl" type="text" value="" placeholder="https://docs.google.com/spreadsheets/d/…"></div><button id="gsrefresh" class="pri">Refresh from Google Sheet</button></div>
 <div class="ctl" style="max-width:520px;margin-bottom:6px"><div><label for="gstab">Slow bar tab</label><select id="gstab"><option value="">Press Refresh to list the tabs</option></select><input id="gstabtxt" type="text" placeholder="Type the tab name, e.g. S22 (blank = first tab)" hidden><div class="sub" id="gstabnote" style="margin:2px 0 0">Pick this month’s slow bar tab. Switching tabs reloads the slow bar view. The house roast tabs are always read by name.</div></div></div>
-<div class="sub" style="margin:0 0 6px">Anyone can refresh from a sheet shared as “Anyone with the link can view”. Inside Claude, a sheet shared only with you works too.</div>
+<div class="sub" style="margin:0 0 6px">Paste the link to any Google Sheet your account can open. If you can’t open it in Google Sheets, ask its owner to share it with the account you signed in with.</div>
 <div class="sub" id="gsmsg" role="status"></div>
 </div>
 </section>
@@ -171,6 +187,7 @@ td.best{background:var(--accbg);font-weight:600}
 <p class="sub">Products from the Products tab, costed with the same bean costs. Margins under your target are flagged.</p>
 <div class="wrap"><table id="hrProd"></table></div>
 </section>
+</div>
 </div>
 </main>
 
@@ -392,7 +409,7 @@ function shipNoteUpdate(){
 }
 var MCP=null;
 function gsMsg(t){$('gsmsg').textContent=t}
-var mcpP=(window.claude&&window.claude.use)?window.claude.use('mcp').then(function(m){MCP=m||null;return MCP}).catch(function(){return null}):Promise.resolve(null);
+var mcpP=Promise.resolve(null);
 function parseCsv(t){
   var rows=[],row=[],f='',q=false;
   for(var i=0;i<t.length;i++){
@@ -477,12 +494,12 @@ async function refreshFromSheet(){
     try{localStorage.setItem('gsurl2',raw)}catch(e){}
   }catch(e){
     var c=e&&e.code,t;
-    if(c==='needs_reauth')t='Your Google connection needs to be renewed. Reconnect Google Sheets in claude.ai Settings, then press Refresh again.';
+    if(c==='needs_reauth')t='Your Google sign-in expired. Press Refresh again and sign in when Google asks.';
     else if(c==='server_not_connected')t='Google Sheets is not connected. Add it in claude.ai Settings, under Connectors.';
     else if(c==='not_in_manifest'||c==='approval_required'||c==='blocked_by_policy')t='This page is not allowed to read Google Sheets yet. Allow it when asked, then press Refresh again.';
     else if(c==='tool_error'){
       var det=((e&&e.message)||'')+' '+(function(){try{return JSON.stringify((e&&e.result)||'')}catch(x){return ''}})();
-      if(/403|permission|forbidden|denied|not have access|insufficient/i.test(det))t='You do not have access to this Google Sheet. Everyone who uses this page needs their own access. Ask the owner to share the sheet with the Google account connected to Claude, then press Refresh again.';
+      if(/403|permission|forbidden|denied|not have access|insufficient/i.test(det))t='You do not have access to this Google Sheet. Everyone who uses this page needs their own access. Ask the owner to share the sheet with '+(auth.email||'the Google account you signed in with')+', then press Refresh again.';
       else if(/parse range|unable to parse/i.test(det))t='There is no tab named \u201c'+lastTabTry()+'\u201d in this sheet. Pick another tab and try again.';
       else if(/404|not found|requested entity/i.test(det))t='Google could not find this sheet. Check the link, or ask the owner to share it with your Google account.';
       else t='Google could not read that sheet. Check the link and that your Google account can open it.';
@@ -768,8 +785,90 @@ $('gstabtxt').addEventListener('change',function(){refreshFromSheet()});
 $('gsurl').addEventListener('change',function(){$('gstab').innerHTML='<option value="">Press Refresh to list the tabs</option>';$('gstabtxt').value='';tabMode()});
 showView();hrBuild();
 
+/* ================= Google sign-in (standalone) ================= */
+var GOOGLE_CLIENT_ID='1003289898886-dvje7im7k7rvbitrdd59qr76j8ssc359.apps.googleusercontent.com';
+var GSCOPE='https://www.googleapis.com/auth/spreadsheets.readonly openid email';
+var auth={token:null,exp:0,email:'',client:null,pending:null};
+function ss(k,v){try{if(v===undefined)return sessionStorage.getItem(k);if(v===null)sessionStorage.removeItem(k);else sessionStorage.setItem(k,v)}catch(e){return null}}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+function authMsg(t){$('authmsg').textContent=t}
+function showSignedIn(){
+  var on=!!auth.token;
+  $('gated').hidden=!on;$('signin').hidden=on;$('whoami').hidden=!on;
+  $('whoemail').textContent=auth.email||'your Google account';
+  MCP=on?SHEETS:null;tabMode();
+}
+function initClient(){
+  if(auth.client)return true;
+  if(!(window.google&&google.accounts&&google.accounts.oauth2))return false;
+  auth.client=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:GSCOPE,callback:function(){},error_callback:function(){}});
+  return true;
+}
+/* Ask Google for an access token. Must start from a click so the sign-in popup is not blocked. */
+function getToken(prompt){
+  return new Promise(function(resolve,reject){
+    if(!initClient()){reject(gerr('gis_unavailable'));return}
+    auth.client.callback=function(r){
+      if(r.error){reject(gerr(r.error==='access_denied'?'signin_declined':'signin_failed'));return}
+      if(!google.accounts.oauth2.hasGrantedAllScopes(r,'https://www.googleapis.com/auth/spreadsheets.readonly')){reject(gerr('scope_declined'));return}
+      auth.token=r.access_token;auth.exp=Date.now()+(r.expires_in-60)*1000;
+      ss('gtok',JSON.stringify({t:auth.token,e:auth.exp}));
+      resolve(auth.token);
+    };
+    auth.client.error_callback=function(e){reject(gerr(e&&e.type==='popup_closed'?'signin_declined':'signin_failed'))};
+    var hint=ls('gemail')||'';
+    auth.client.requestAccessToken({prompt:prompt,login_hint:hint||undefined});
+  });
+}
+async function loadEmail(){
+  try{var r=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+auth.token}});if(r.ok){var j=await r.json();auth.email=j.email||'';if(auth.email)ls('gemail',auth.email)}}catch(e){}
+}
+async function signIn(){
+  $('gsignin').disabled=true;authMsg('Waiting for Google sign-in…');
+  try{
+    await getToken(ls('gemail')?'':'consent');
+    await loadEmail();ss('gemail',auth.email);
+    authMsg('');showSignedIn();
+    if($('gsurl').value.trim())await $('gsrefresh').onclick();
+  }catch(e){
+    var c=e&&e.code;
+    authMsg(c==='gis_unavailable'?'Google sign-in did not load. Check your connection or turn off content blockers for this site, then reload the page.':
+      c==='signin_declined'?'Sign-in was cancelled. Press Sign in with Google to try again.':
+      c==='scope_declined'?'The app needs permission to view your Google Sheets. Sign in again and tick the box for Google Sheets.':
+      'Google sign-in failed. Reload the page and try again.');
+  }finally{$('gsignin').disabled=false}
+}
+function signOut(){
+  if(auth.token&&window.google&&google.accounts&&google.accounts.oauth2)google.accounts.oauth2.revoke(auth.token,function(){});
+  auth.token=null;auth.exp=0;auth.email='';ss('gtok',null);ss('gemail',null);ls('gemail',null);
+  showSignedIn();authMsg('Signed out.');
+}
+/* Sheets API calls, shaped like the connector calls the rest of the page already makes */
+async function sheetsFetch(url){
+  if(!auth.token||Date.now()>auth.exp){try{await getToken('')}catch(e){throw gerr('needs_reauth')}}
+  var r=await fetch(url,{headers:{Authorization:'Bearer '+auth.token}});
+  if(r.status===401){try{await getToken('');r=await fetch(url,{headers:{Authorization:'Bearer '+auth.token}})}catch(e){throw gerr('needs_reauth')}}
+  if(r.status===401)throw gerr('needs_reauth');
+  var body=await r.text(),j=null;try{j=JSON.parse(body)}catch(e){}
+  if(!r.ok){var err=gerr('tool_error');err.message=r.status+' '+((j&&j.error&&j.error.message)||body.slice(0,300));err.result=j;throw err}
+  return j;
+}
+var SHEETS={callTool:async function(server,tool,args){
+  var base='https://sheets.googleapis.com/v4/spreadsheets/'+encodeURIComponent(args.spreadsheetId);
+  if(tool==='get_values')return {payload:await sheetsFetch(base+'/values/'+encodeURIComponent(args.range)+'?valueRenderOption=FORMATTED_VALUE')};
+  if(tool==='get_spreadsheet')return {payload:await sheetsFetch(base+'?fields='+encodeURIComponent((args.fields||[]).join(',').replace(/^sheets\./,'sheets(').replace(/,sheets\./g,',')+((args.fields||[]).length?')':'')))};
+  throw gerr('tool_error');
+}};
+$('gsignin').onclick=signIn;$('gsignout').onclick=signOut;
+(function restore(){
+  var t=null;try{t=JSON.parse(ss('gtok')||'null')}catch(e){}
+  if(t&&t.t&&t.e>Date.now()){auth.token=t.t;auth.exp=t.e;auth.email=ss('gemail')||ls('gemail')||''}
+  showSignedIn();
+  if(auth.token&&$('gsurl').value.trim())$('gsrefresh').onclick();
+})();
 </script>
 
 
 </body></html>
-</body></html>
+</body>
+</html>
