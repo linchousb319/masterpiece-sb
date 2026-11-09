@@ -58,6 +58,34 @@ td.best{background:var(--accbg);font-weight:600}
 .pill{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--ambbg);color:var(--amb);white-space:nowrap}
 #hrMatrix td,#hrProd td{vertical-align:top}
 #hrParts select{min-width:200px;max-width:320px}
+[hidden]{display:none!important}
+.subnav{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin:0 0 12px}
+.subnav a{padding:9px 12px;text-decoration:none;color:var(--mute);font-weight:600;border-bottom:2px solid transparent;white-space:nowrap}
+.subnav a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--acc)}
+.subnav a:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+.hrstatus{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;margin:0 0 14px}
+.sechead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.sechead h2{margin:0}
+.entries{display:grid;gap:8px}
+.entry{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}
+.entry .e-main{min-width:0;overflow-wrap:anywhere}
+.e-sub{color:var(--mute);font-size:13.5px;margin-top:2px}
+.formcard{border:1px solid var(--acc);border-radius:10px;padding:14px;margin:0 0 14px;background:var(--bg)}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.fgrid .wide{grid-column:1/-1}
+.fgrid label,.fgrid .flabel,.filters label{display:block;font-weight:500;margin-bottom:4px}
+.fgrid input[type=number],.fgrid input[type=text],.fgrid input[type=date],.fgrid select{width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px}
+.pair{display:flex;gap:6px}.pair input{flex:1 1 auto}.pair select{flex:0 0 auto;width:auto!important;min-width:84px!important}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg label{display:inline-flex;gap:6px;align-items:center;font-weight:500;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;margin:0;background:var(--panel)}
+.seg input{accent-color:var(--acc)}
+.filters{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 10px}
+button.danger{background:var(--neg);border-color:var(--neg);color:var(--bg)}
+button.ghostdanger{color:var(--neg)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.confirm{border:1px solid var(--neg);border-radius:8px;padding:10px;margin-top:10px}
+.pill.ok{background:var(--accbg);color:var(--acc)}
+.pill.out{background:var(--neg);color:var(--bg)}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -68,7 +96,7 @@ td.best{background:var(--accbg);font-weight:600}
 <p class="lead">Two views on one sheet: the slow bar coffee you buy already roasted, and the products you roast in-house. Refresh once to load both.</p>
 <section id="signin">
 <h2>Sign in to continue</h2>
-<p class="sub">This app reads your Google Sheets as you, so it can only open sheets your Google account already has access to. It only reads; it never changes your sheets.</p>
+<p class="sub">This app works with your Google Sheets as you, so it can only open sheets your account already has access to, and it can only save to sheets you’re allowed to edit. It changes nothing on its own: it saves only the entries you log or edit in the app.</p>
 <div class="bar"><button id="gsignin" class="pri">Sign in with Google</button></div>
 <p class="sub" id="authmsg" role="status"></p>
 </section>
@@ -83,7 +111,7 @@ td.best{background:var(--accbg);font-weight:600}
 <div class="sub" id="gsmsg" role="status"></div>
 </div>
 </section>
-<nav class="views" aria-label="Views"><a href="#slow-bar" data-v="slow">Slow bar (bought roasted)</a><a href="#house-roast" data-v="house">House roast products</a></nav>
+<nav class="views" aria-label="Views"><a href="#slow-bar" data-v="slow">Slow bar (bought roasted)</a><a href="#house-overview" data-v="house">House roast</a></nav>
 <div id="v-slow">
 
 <section>
@@ -134,32 +162,47 @@ td.best{background:var(--accbg);font-weight:600}
 </section>
 </div>
 <div id="v-house" hidden>
-<section>
-<h2>House roast product planner</h2>
-<p class="sub">Decide which products to make, which bag size, and what to charge. Bean costs come from the Green Lots and Roast Batches tabs of your sheet. Prices are suggested from the margin you aim for, and you can type your own to see the margin it gives.</p>
-<div class="bar"><button id="hrSample">Try with sample beans</button></div>
-<div class="sub" id="hrMsg" role="status">Press Refresh from Google Sheet above to load your beans.</div>
-<div class="ctl">
-<div><label for="hrTm">Target retail margin (%)</label><input id="hrTm" type="number" min="0" max="95" step="1" value="70"></div>
-<div><label for="hrTc">Target pour over margin (%)</label><input id="hrTc" type="number" min="0" max="95" step="1" value="80"></div>
-<div><label for="hrLoss">Roast loss for batches you didn't weigh (%)</label><input id="hrLoss" type="number" min="0" max="40" step="0.5" value="0"><div class="sub" style="margin:2px 0 0">0% means no loss. Weighed batches always use their real yield.</div></div>
-<div><label for="hrAllow">Testing &amp; profiling allowance (%)</label><input id="hrAllow" type="number" min="0" max="50" step="0.5" value="0"><div class="sub" style="margin:2px 0 0">For beans with no profiling roasts or test removals logged yet. Beans with logged testing use the real amounts.</div></div>
-<div><label for="hrRound">Round suggested prices up to</label><select id="hrRound"><option value="0.25">the next $0.25</option><option value="0.5" selected>the next $0.50</option><option value="1">the next whole dollar</option><option value="0.95">a price ending in .95</option></select></div>
-<div><label for="hrSizes">Bag sizes to compare (g)</label><input id="hrSizes" type="text" value="60, 100, 200"></div>
-<div><label for="hrGpc">Grams per cup</label><input id="hrGpc" type="number" min="1" step="0.5" value="15"></div>
-<div><label for="hrShip">Online shipping per order ($)</label><input id="hrShip" type="number" min="0" step="0.05" value="0"></div>
-<div><label for="hrSubShip">Subscription shipping per subscriber ($)</label><input id="hrSubShip" type="number" min="0" step="0.05" value="0"></div>
-</div>
+<nav class="subnav" aria-label="House roast"><a href="#house-overview" data-s="overview">Overview</a><a href="#house-roasts" data-s="roasts">Roasts</a><a href="#house-adjustments" data-s="adjustments">Adjustments</a><a href="#house-products" data-s="products">Products</a><a href="#house-prices" data-s="prices">Price list</a></nav>
+<div class="hrstatus"><span class="sub" id="hrMsg" role="status" style="margin:0">Press Refresh from Google Sheet above to load your beans.</span><button id="hrSample">Try with sample beans</button></div>
+
+<section data-sub="overview">
+<h2>Overview</h2>
+<p class="sub">Every bean from Green Lots, with what’s left and what each sellable gram costs after roasting and testing loss.</p>
+<div class="kpis" id="ovKpis"></div>
+<div class="wrap"><table id="ovT"></table></div>
+<p class="note" id="ovNote"></p>
 </section>
 
-<section>
-<h2>Price list at your target margin</h2>
-<p class="sub">Every bean, cheapest first, priced for each bag size and per cup. The small figure is the bean cost; the bold one is the price that hits your target margin. Choose Plan to build a product from a bean.</p>
-<div class="wrap"><table id="hrMatrix"></table></div>
+<section data-sub="roasts">
+<div class="sechead"><h2>Roasts</h2><button id="rAdd" class="pri" data-needsheet>Log a roast</button></div>
+<p class="sub" id="rHint" hidden></p>
+<p class="sub" id="rMsg" role="status"></p>
+<div id="rForm" class="formcard" hidden></div>
+<div class="filters"><div><label for="rFBean">Bean</label><select id="rFBean"><option value="">All beans</option></select></div><div><label for="rFMonth">Month</label><select id="rFMonth"><option value="">All months</option></select></div></div>
+<div class="kpis" id="rSum"></div>
+<div id="rList" class="entries"></div>
 </section>
 
-<section>
-<h2>Build a product</h2>
+<section data-sub="adjustments">
+<div class="sechead"><h2>Adjustments</h2><button id="aAdd" class="pri" data-needsheet>Log an adjustment</button></div>
+<p class="sub">Beans used for testing or cupping, spills, and corrections after a stock count.</p>
+<p class="sub" id="aHint" hidden></p>
+<p class="sub" id="aMsg" role="status"></p>
+<div id="aForm" class="formcard" hidden></div>
+<div class="filters"><div><label for="aFBean">Bean</label><select id="aFBean"><option value="">All beans</option></select></div><div><label for="aFMonth">Month</label><select id="aFMonth"><option value="">All months</option></select></div></div>
+<div class="kpis" id="aSum"></div>
+<div id="aList" class="entries"></div>
+</section>
+
+<section data-sub="products">
+<div class="sechead"><h2>Your products</h2><button id="pNew" class="pri">New product</button></div>
+<p class="sub">Everything in the Products tab, costed with today’s bean costs. Margins under your target are flagged. Edit opens a product below.</p>
+<p class="sub" id="pHint" hidden></p>
+<div class="wrap"><table id="hrProd"></table></div>
+</section>
+
+<section data-sub="products" id="builder">
+<h2 id="bTitle">New product</h2>
 <p class="sub">Pick one bean for a single origin, or up to four with percentages for a post-roast blend. Leave a price box blank to use the suggested price.</p>
 <div class="ctl" style="max-width:520px;margin-bottom:6px"><div><label for="dName">Product name</label><input id="dName" type="text" placeholder="e.g. House Blend"></div></div>
 <div class="wrap"><table id="hrParts"></table></div>
@@ -176,17 +219,34 @@ td.best{background:var(--accbg);font-weight:600}
 <p class="sub">What each tier earns if this product fills its bags, at the bag size you picked above.</p>
 <div class="wrap"><table id="hrSubT"></table></div>
 
-<h3>Save it to your sheet</h3>
+<h3>Save to your sheet</h3>
 <div class="ctl" style="max-width:520px;margin-bottom:8px"><div><label for="dTier">Subscription tier for this product</label><select id="dTier"><option value="">Not in a tier</option><option value="1">Tier 1 (Tier 3 also gets it)</option><option value="2">Tier 2 (Tier 3 also gets it)</option></select></div></div>
-<div class="bar"><button id="hrCopy" class="pri">Copy row for the Products tab</button><button id="hrClear">Start a new product</button></div>
-<p class="sub" id="hrCopyMsg" role="status">Copies the product with the bag size and prices above. Paste it into the first empty row of the Products tab.</p>
-<textarea id="hrCopyBox" class="nm" rows="2" readonly hidden aria-label="Products row to copy"></textarea>
+<p class="sub">Saves the bag size you picked with Use, and its prices. Blank price boxes save the suggested price.</p>
+<div class="bar"><button id="pSave" class="pri">Save to sheet</button><button id="pDel" class="ghostdanger" hidden>Delete product</button></div>
+<div id="pConfirm" class="confirm" hidden>Delete this product from the Products tab? Sales already logged in Usage keep its name. <div class="bar" style="margin:8px 0 0"><button id="pYes" class="danger">Yes, delete</button><button id="pNo">Keep it</button></div></div>
+<p class="sub" id="pMsg" role="status"></p>
 </section>
 
-<section>
-<h2>Your products</h2>
-<p class="sub">Products from the Products tab, costed with the same bean costs. Margins under your target are flagged.</p>
-<div class="wrap"><table id="hrProd"></table></div>
+<section data-sub="products prices">
+<h2>Pricing assumptions</h2>
+<p class="sub">Used for suggested prices in Products and the Price list. They start from your Settings tab; changes here are only for trying numbers and aren’t saved.</p>
+<div class="ctl">
+<div><label for="hrTm">Target retail margin (%)</label><input id="hrTm" type="number" min="0" max="95" step="1" value="70"></div>
+<div><label for="hrTc">Target pour over margin (%)</label><input id="hrTc" type="number" min="0" max="95" step="1" value="80"></div>
+<div><label for="hrLoss">Roast loss for batches you didn't weigh (%)</label><input id="hrLoss" type="number" min="0" max="40" step="0.5" value="0"><div class="sub" style="margin:2px 0 0">0% means no loss. Weighed batches always use their real yield.</div></div>
+<div><label for="hrAllow">Testing &amp; profiling allowance (%)</label><input id="hrAllow" type="number" min="0" max="50" step="0.5" value="0"><div class="sub" style="margin:2px 0 0">For beans with no profiling roasts or test removals logged yet. Beans with logged testing use the real amounts.</div></div>
+<div><label for="hrRound">Round suggested prices up to</label><select id="hrRound"><option value="0.25">the next $0.25</option><option value="0.5" selected>the next $0.50</option><option value="1">the next whole dollar</option><option value="0.95">a price ending in .95</option></select></div>
+<div><label for="hrSizes">Bag sizes to compare (g)</label><input id="hrSizes" type="text" value="60, 100, 200"></div>
+<div><label for="hrGpc">Grams per cup</label><input id="hrGpc" type="number" min="1" step="0.5" value="15"></div>
+<div><label for="hrShip">Online shipping per order ($)</label><input id="hrShip" type="number" min="0" step="0.05" value="0"></div>
+<div><label for="hrSubShip">Subscription shipping per subscriber ($)</label><input id="hrSubShip" type="number" min="0" step="0.05" value="0"></div>
+</div>
+</section>
+
+<section data-sub="prices">
+<h2>Price list at your target margin</h2>
+<p class="sub">Every bean, cheapest first, priced for each bag size and per cup. The small figure is the bean cost; the bold one is the price that hits your target margin. Choose Plan to start a product from a bean.</p>
+<div class="wrap"><table id="hrMatrix"></table></div>
 </section>
 </div>
 </div>
@@ -491,7 +551,7 @@ async function refreshFromSheet(){
     if(out.ship>0){$('inship').value=out.ship;sheetShip=out.ship;shipNoteUpdate();shipNote=' Shipping cost set to '+money(out.ship)+' from the sheet.'}
     else if(out.ship===0){shipNote=' The sheet lists shipping as $0.00, so the shipping box was left as you had it.'}
     build();
-    gsMsg('Loaded '+out.beans.length+' beans'+(tab?' from the tab \u201c'+tab+'\u201d':'')+' at '+new Date().toLocaleTimeString()+'.'+shipNote+tierNote);
+    gsMsg('Loaded '+out.beans.length+(out.beans.length===1?' bean':' beans')+(tab?' from the tab \u201c'+tab+'\u201d':'')+' at '+new Date().toLocaleTimeString()+'.'+shipNote+tierNote);
     try{localStorage.setItem('gsurl2',raw)}catch(e){}
   }catch(e){
     var c=e&&e.code,t;
@@ -570,9 +630,9 @@ window.addEventListener('resize',autosizeAll);
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(autosizeAll);
 beans=[blank()];build();
 /* ================= House roast product planner ================= */
-var HR={beans:[],products:[],set:{yield:1,bag:100,tiers:[[30,1],[50,1],[72,2]],subShip:0,online:0,gpc:15},loaded:false};
+var HR={beans:[],products:[],lots:[],set:{yield:1,bag:100,tiers:[[30,1],[50,1],[72,2]],subShip:0,online:0,gpc:15,floor:2000},loaded:false,sample:false,at:0};
 var draft=newDraft();
-function newDraft(){return {name:'',parts:[{bean:'',pct:''},{bean:'',pct:''},{bean:'',pct:''},{bean:'',pct:''}],store:{},online:{},use:null,cup:'',tier:''}}
+function newDraft(){return {name:'',parts:[{bean:'',pct:''},{bean:'',pct:''},{bean:'',pct:''},{bean:'',pct:''}],store:{},online:{},use:null,cup:'',tier:'',row:null,orig:null,notes:''}}
 function pnum(v){var s=String(v).trim();var n=num(s);return (/%/.test(s)||n>1)?n/100:n}
 function hv(id){return num($(id).value)}
 function hrSizes(){var a=$('hrSizes').value.split(/[^0-9.]+/).map(num).filter(function(x){return x>0});return a.length?a:[HR.set.bag]}
@@ -627,45 +687,51 @@ function hrSettings(rows){
   if((v=get('testing & profiling allowance'))!==null){s.allow=pnum(v);if(s.allow>=1)s.allow/=100;$('hrAllow').value=Math.round(s.allow*1000)/10}
   if((v=get('online retail shipping'))!==null)s.online=num(v);
   if((v=get('default grams per cup'))!==null)s.gpc=num(v);
+  if((v=get('low-stock floor'))!==null)s.floor=num(v);
   $('hrLoss').value=Math.round((1-s.yield)*1000)/10;$('hrGpc').value=s.gpc;$('hrShip').value=s.online;$('hrSubShip').value=s.subShip;
   var sizes=hrSizes();if(sizes.indexOf(s.bag)<0){sizes.push(s.bag);sizes.sort(function(a,b){return a-b});$('hrSizes').value=sizes.join(', ')}
 }
 /* find a column by its header text, so moving columns in the sheet doesn't break the app */
 function colOf(head,re,fallback){for(var i=0;i<(head||[]).length;i++){if(re.test(String(head[i]||'').toLowerCase()))return i}return fallback}
 function hrBuildBeans(lots,roastGrid,beansTab){
-  var map={},list=[],rh=(roastGrid||[])[0]||[],roasts=tabRows(roastGrid);
+  var map={},list=[],rh=(roastGrid||[])[0]||[],roasts=tabRows(roastGrid);HR.lots=[];
   var RB={bean:colOf(rh,/^bean/,2),green:colOf(rh,/^green in g/,9),roasted:colOf(rh,/^roasted out g/,10),basis:colOf(rh,/^yield basis/,12),cost:colOf(rh,/^green cost/,13),purpose:colOf(rh,/^purpose/,8)};
-  lots.forEach(function(r){var n=String(r[1]||'').trim();if(!n)return;var g=num(r[11]);if(!map[n]){map[n]={name:n,grams:0,landed:0,greenLeft:0,roastedHand:0,batches:[]};list.push(map[n])}map[n].grams+=g;map[n].landed+=num(r[12]);map[n].greenLeft+=num(r[16])});
+  lots.forEach(function(r){var n=String(r[1]||'').trim();if(!n)return;if(String(r[0]||'').trim())HR.lots.push({id:String(r[0]).trim(),bean:n,unit:String(r[5]||'').trim(),leftG:num(r[16])});var g=num(r[11]);if(!map[n]){map[n]={name:n,grams:0,landed:0,greenLeft:0,roastedHand:0,batches:[]};list.push(map[n])}map[n].grams+=g;map[n].landed+=num(r[12]);map[n].greenLeft+=num(r[16])});
   roasts.forEach(function(r){var n=String(r[RB.bean]||'').trim();if(!map[n]||!num(r[RB.green]))return;map[n].batches.push({green:num(r[RB.green]),roasted:num(r[RB.roasted]),cost:num(r[RB.cost]),measured:String(r[RB.basis]||'').toLowerCase()==='measured',test:/profil|test/i.test(String(r[RB.purpose]||''))})});
   beansTab.forEach(function(r){var n=String(r[0]||'').trim();if(map[n]){map[n].roastedHand=num(r[11]);map[n].greenRemoved=Math.max(0,num(r[13]));map[n].roastedRemoved=Math.max(0,num(r[14]))}});
   list.forEach(function(b){b.greenG=b.grams>0?b.landed/b.grams:0});
   return list.filter(function(b){return b.greenG>0});
 }
-function hrProducts(rows){
-  return rows.filter(function(r){return String(r[0]||'').trim()!==''}).map(function(r){
-    var p=newDraft();p.name=String(r[0]).trim();
+function hrProducts(grid){
+  var out=[];
+  for(var k=1;k<(grid||[]).length;k++){
+    var r=grid[k]||[];if(String(r[0]||'').trim()==='')continue;
+    var p=newDraft();p.name=String(r[0]).trim();p.row=k+1;p.orig=r;p.notes=String(r[15]||'').trim();
     for(var i=0;i<4;i++){p.parts[i].bean=String(r[1+i*2]||'').trim();p.parts[i].pct=String(r[2+i*2]===undefined?'':r[2+i*2]).trim()}
     p.bag=num(r[9])||'';p.storeP=String(r[10]||'').trim()?num(r[10]):'';p.onlineP=String(r[11]||'').trim()?num(r[11]):'';p.gpc=num(r[12])||'';p.cupP=String(r[13]||'').trim()?num(r[13]):'';p.tier=String(r[14]||'').trim();
-    return p;
-  });
+    out.push(p);
+  }
+  return out;
 }
-async function loadHouse(){
+async function loadHouse(quiet){
   var raw=$('gsurl').value.trim(),isPub=/\/spreadsheets\/d\/e\//.test(raw),lm=/\/d\/([a-zA-Z0-9_-]+)/.exec(raw);
   var id=isPub?'pub':(lm?lm[1]:(/^[a-zA-Z0-9_-]{20,}$/.test(raw)?raw:null));
   if(!id)return;
   if(isPub){$('hrMsg').textContent='The house roast planner needs the sheet’s normal link (…/spreadsheets/d/…), not a published-to-web link.';return}
-  $('hrMsg').textContent='Reading Green Lots, Roast Batches, Products and Settings…';
+  if(!quiet)$('hrMsg').textContent='Reading Green Lots, Roast Batches, Products and Settings…';
   try{
     await mcpP;
     var lots=await getTab(raw,id,'Green Lots','A1:R300');
     if(!lots.length||String(lots[0][1]||'').toLowerCase()!=='bean'){$('hrMsg').textContent='This sheet has no Green Lots tab in the expected layout, so the house roast planner has nothing to load. The slow bar view above is unaffected.';return}
-    var res=await Promise.all([getTab(raw,id,'Roast Batches','A1:O1000').catch(function(){return []}),getTab(raw,id,'Beans','A1:R300').catch(function(){return []}),getTab(raw,id,'Products','A1:O200').catch(function(){return []}),getTab(raw,id,'Settings','A1:C60').catch(function(){return []})]);
+    var res=await Promise.all([getTab(raw,id,'Roast Batches','A1:O1000').catch(function(){return []}),getTab(raw,id,'Beans','A1:R300').catch(function(){return []}),getTab(raw,id,'Products','A1:Z200').catch(function(){return []}),getTab(raw,id,'Settings','A1:C60').catch(function(){return []}),getTab(raw,id,'Adjustments','A1:H1000').catch(function(){return []})]);
     hrSettings(tabRows(res[3]));
     HR.beans=hrBuildBeans(tabRows(lots),res[0],tabRows(res[1]));
-    HR.products=hrProducts(tabRows(res[2]));
-    HR.loaded=true;
-    $('hrMsg').textContent='Loaded '+HR.beans.length+' beans and '+HR.products.length+' products at '+new Date().toLocaleTimeString()+'. Settings tab values filled in below; change them here to try other numbers.';
-    hrBuild();
+    HR.products=hrProducts(res[2]);
+    SH.id=MCP?id:null;SH.grids={roasts:res[0],adj:res[4],prod:res[2]};
+    HR.loaded=true;HR.sample=false;HR.at=Date.now();
+    $('hrMsg').textContent='Loaded from your sheet at '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+': '+HR.beans.length+' beans, '+entriesOf('roasts').list.length+' roasts, '+HR.products.length+' products.';
+    if(draft.row){var dp=HR.products.filter(function(x){return x.row===draft.row})[0];if(dp)draft.orig=dp.orig}
+    hrBuild();renderEdit();
   }catch(e){
     var c=e&&e.code;
     $('hrMsg').textContent=c==='not_public'?'This sheet is not shared publicly, so the house roast tabs could not be read. Share it as “Anyone with the link” (Viewer), then refresh.':(c==='tool_error'?'Google would not return the house roast tabs. Check that your Google account can open this sheet.':'Could not read the house roast tabs ('+(c||'unknown error')+').');
@@ -675,7 +741,8 @@ $('hrSample').onclick=function(){
   function b(n,perLb,left,hand,batches){return {name:n,greenG:perLb/453.592,greenLeft:left,roastedHand:hand,batches:batches||[]}}
   HR.beans=[b('Sample Ethiopia natural',8.25,40000,1500,[{green:4536,roasted:3856,cost:82.5,measured:true},{green:300,roasted:255,cost:5.46,measured:true,test:true}]),b('Sample Colombia washed',6.5,25000,0),b('Sample Yunnan honey',10.04,18000,800,[{green:2268,roasted:2268,cost:50.2,measured:false}]),b('Sample Panama gesha',79.4,1800,0)];
   HR.products=[];var p=newDraft();p.name='Sample House Blend';p.parts[0]={bean:'Sample Colombia washed',pct:'60%'};p.parts[1]={bean:'Sample Ethiopia natural',pct:'40%'};p.bag=100;p.storeP=12;p.onlineP=14;p.gpc=15;p.cupP=5;HR.products.push(p);
-  HR.loaded=true;$('hrMsg').textContent='Sample beans are made up. Refresh from your Google Sheet to use your own.';hrBuild();
+  HR.lots=HR.beans.map(function(b){return {id:b.name+' (sample)',bean:b.name,unit:'g',leftG:b.greenLeft}});SH.id=null;SH.grids={roasts:[],adj:[],prod:[]};
+  HR.loaded=true;HR.sample=true;$('hrMsg').textContent='Sample beans are made up. Refresh from your Google Sheet to use your own.';hrBuild();renderEdit();
 };
 
 /* ---------- rendering ---------- */
@@ -690,6 +757,7 @@ function hrBuild(){
   $('hrSizesT').innerHTML=s;
   $('hrCupT').innerHTML='<tr><th>Grams per cup</th><th>Bean cost per cup</th><th>Suggested price</th><th>Your price per cup</th><th>Margin</th><th>Profit per cup</th><th>Cups from stock</th></tr><tr><td id="cg"></td><td id="cc"></td><td id="cs"></td><td><input type="number" min="0" step="0.25" id="dCup" value="'+esc(draft.cup)+'" aria-label="Your price per cup"></td><td id="cm"></td><td id="cf"></td><td id="ck"></td></tr>';
   $('dName').value=draft.name;$('dTier').value=draft.tier;
+  $('bTitle').textContent=draft.row?'Edit \u201c'+draft.name+'\u201d':'New product';$('pDel').hidden=!draft.row;$('pConfirm').hidden=true;$('pSave').textContent=draft.row?'Save changes':'Save to sheet';
   hrUpdate();
 }
 function cell(id,html,c){var e=$(id);if(e){e.innerHTML=html;e.className=c||''}}
@@ -740,7 +808,7 @@ function hrUpdate(){
   $('hrSubT').innerHTML=t+'<tr><td colspan="7" class="note">Tier 3 normally gets the Tier 1 and Tier 2 products. This row assumes both of its bags are this product.</td></tr>';
   /* your products */
   var q='<tr><th>Product</th><th>Beans</th><th>Cost per roasted g</th><th>Bag</th><th>Bag cost</th><th>In-store price</th><th>Margin</th><th>Online price</th><th>Online margin</th><th>Cup price</th><th>Cup margin</th><th></th></tr>';
-  if(!HR.products.length)q+='<tr><td colspan="12" class="note">No products in the Products tab yet. Build one above and copy it into the sheet.</td></tr>';
+  if(!HR.products.length)q+='<tr><td colspan="12" class="note">No products in the Products tab yet. Press New product to create one.</td></tr>';
   HR.products.forEach(function(p,i){
     var ps=partsOf(p),c=ps.length?blendCost(ps):null,g=p.bag||HR.set.bag,k=c===null?null:c*g,cg=p.gpc||HR.set.gpc;
     var sp=p.storeP===''?null:p.storeP,op=p.onlineP===''?sp:p.onlineP,cp=p.cupP===''?null:p.cupP;
@@ -755,10 +823,8 @@ function kg(g){return g>=1000?(Math.round(g/100)/10).toLocaleString()+' kg':int(
 /* ---------- interactions ---------- */
 document.addEventListener('click',function(e){
   var t=e.target;
-  if(t.dataset.plan!==undefined){draft=newDraft();draft.name=t.dataset.plan;draft.parts[0].bean=t.dataset.plan;hrBuild();$('dName').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});return}
-  if(t.dataset.edit!==undefined){var p=HR.products[+t.dataset.edit];draft=newDraft();draft.name=p.name;draft.parts=p.parts.map(function(x){return {bean:x.bean,pct:x.pct}});draft.use=p.bag||HR.set.bag;
-    if(hrSizes().indexOf(draft.use)<0){$('hrSizes').value=hrSizes().concat([draft.use]).sort(function(a,b){return a-b}).join(', ')}
-    if(p.storeP!=='')draft.store[draft.use]=p.storeP;if(p.onlineP!=='')draft.online[draft.use]=p.onlineP;if(p.cupP!=='')draft.cup=String(p.cupP);if(p.gpc)$('hrGpc').value=p.gpc;draft.tier=p.tier;hrBuild();$('dName').scrollIntoView({block:'center'});return}
+  if(t.dataset.plan!==undefined){draft=newDraft();draft.name=t.dataset.plan;draft.parts[0].bean=t.dataset.plan;hrBuild();location.hash='#house-products';showView();setMsg('pMsg','');$('dName').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});return}
+  if(t.dataset.edit!==undefined){editProduct(HR.products[+t.dataset.edit]);setMsg('pMsg','');$('builder').scrollIntoView({block:'start'});return}
 });
 document.addEventListener('change',function(e){var t=e.target;
   if(t.dataset.part!==undefined){draft.parts[+t.dataset.part].bean=t.value;hrUpdate()}
@@ -775,32 +841,284 @@ document.addEventListener('input',function(e){var t=e.target;
   else if(t.id==='dName'){draft.name=t.value}
   else if(/^hr(Tm|Tc|Loss|Allow|Gpc|Ship|SubShip)$/.test(t.id)){hrUpdate()}
 });
-$('hrClear').onclick=function(){draft=newDraft();hrBuild();$('hrCopyMsg').textContent='Copies the product with the bag size and prices above. Paste it into the first empty row of the Products tab.';$('hrCopyBox').hidden=true};
-$('hrCopy').onclick=function(){
-  var parts=partsOf(draft),bc=blendCost(parts),tot=parts.reduce(function(a,x){return a+x.pct},0);
-  if(!draft.name.trim()||!parts.length||bc===null||Math.abs(tot-1)>0.001){$('hrCopyMsg').textContent='Give the product a name and beans whose shares add up to 100% first.';return}
-  var g=draft.use,tm=hv('hrTm')/100,k=bc*g,sp=draft.store[g]!==undefined&&draft.store[g]!==''?num(draft.store[g]):atMargin(k,tm);
-  var op=draft.online[g]!==undefined&&draft.online[g]!==''?num(draft.online[g]):(draft.store[g]!==undefined&&draft.store[g]!==''?sp:atMargin(k+hv('hrShip'),tm));
-  var gpc=hv('hrGpc')||HR.set.gpc,cp=draft.cup!==''?num(draft.cup):atMargin(bc*gpc,hv('hrTc')/100);
-  var row=[draft.name.trim()];for(var i=0;i<4;i++){var x=parts[i];row.push(x?x.bean:'',x?(parts.length===1?'':Math.round(x.pct*1000)/10+'%'):'')}
-  row.push(g,sp.toFixed(2),op.toFixed(2),gpc,cp.toFixed(2),draft.tier);
-  var txt=row.join('\t'),box=$('hrCopyBox');box.value=txt;
-  function shown(){box.hidden=false;autosize(box);box.focus();box.select();$('hrCopyMsg').textContent='Copying was blocked here, so the row is selected below. Copy it, then paste it into the first empty row of the Products tab.'}
-  try{navigator.clipboard.writeText(txt).then(function(){box.hidden=true;$('hrCopyMsg').textContent='Copied '+draft.name.trim()+' ('+g+' g, '+money(sp)+' in-store). Paste it into the first empty row of the Products tab, in column A.'},shown)}catch(err){shown()}
-};
-
 /* ---------- views ---------- */
-function showView(){var h=location.hash==='#house-roast'?'house':'slow';$('v-slow').hidden=h!=='slow';$('v-house').hidden=h!=='house';document.querySelectorAll('.views a').forEach(function(a){a.setAttribute('aria-current',a.dataset.v===h?'page':'false')});if(h==='house')autosizeAll()}
+var SUBS=['overview','roasts','adjustments','products','prices'];
+function showView(){
+  var h=location.hash.replace(/^#/,''),house=h.indexOf('house')===0,sub=h.split('-')[1]||'overview';
+  if(h==='house-roast'||SUBS.indexOf(sub)<0)sub='overview';
+  $('v-slow').hidden=house;$('v-house').hidden=!house;
+  document.querySelectorAll('.views a').forEach(function(a){a.setAttribute('aria-current',a.dataset.v===(house?'house':'slow')?'page':'false')});
+  document.querySelectorAll('.subnav a').forEach(function(a){a.setAttribute('aria-current',a.dataset.s===sub?'page':'false')});
+  document.querySelectorAll('#v-house [data-sub]').forEach(function(x){x.hidden=x.dataset.sub.split(' ').indexOf(sub)<0});
+  if(house)autosizeAll();
+}
 window.addEventListener('hashchange',showView);
 $('gsrefresh').onclick=async function(){await refreshFromSheet();await loadHouse()};
 $('gstab').addEventListener('change',function(){refreshFromSheet()});
 $('gstabtxt').addEventListener('change',function(){refreshFromSheet()});
 $('gsurl').addEventListener('change',function(){$('gstab').innerHTML='<option value="">Press Refresh to list the tabs</option>';$('gstabtxt').value='';tabMode()});
 showView();hrBuild();
+/* ================= Editing the sheet from the app ================= */
+/* The sheet stays the source of truth. Every save re-reads the tab first, writes only the white input
+   columns, finds rows by their contents (never a remembered row number), and refuses to overwrite an
+   entry that changed in the sheet since it was opened. */
+var SH={id:null,grids:{roasts:[],adj:[],prod:[]}};
+var FORM={kind:null,entry:null};
+function norm(v){return String(v===undefined||v===null?'':v).trim()}
+function L(i){var s='';i++;while(i>0){var m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s}
+function qt(tab){return "'"+tab.replace(/'/g,"''")+"'!"}
+function spans(cols){var s=cols.slice().sort(function(a,b){return a-b}),out=[];s.forEach(function(c){var l=out[out.length-1];if(l&&l[1]===c-1)l[1]=c;else out.push([c,c])});return out}
+function RBC(h){var c={date:colOf(h,/^date/,0),lot:colOf(h,/^lot/,1),bean:colOf(h,/^bean/,2),greenIn:colOf(h,/^green in$/,3),unitG:colOf(h,/^unit \(green/,4),roastOut:colOf(h,/^roasted out( \(|$)/,5),unitR:colOf(h,/^unit \(roasted/,6),notes:colOf(h,/^notes/,7),purpose:colOf(h,/^purpose/,8),greenG:colOf(h,/^green in g/,9),roastG:colOf(h,/^roasted out g/,10),yieldP:colOf(h,/^yield %/,11),basis:colOf(h,/^yield basis/,12),cost:colOf(h,/^green cost/,13),cpg:colOf(h,/^cost per roasted/,14)};c.inputs=[c.date,c.lot,c.greenIn,c.unitG,c.roastOut,c.unitR,c.notes,c.purpose];return c}
+function ADC(h){var c={date:colOf(h,/^date/,0),lot:colOf(h,/^lot/,1),stage:colOf(h,/^stage/,2),qty:colOf(h,/^quantity/,3),unit:colOf(h,/^unit/,4),reason:colOf(h,/^reason/,5),grams:colOf(h,/^grams/,6),bean:colOf(h,/^bean/,7)};c.inputs=[c.date,c.lot,c.stage,c.qty,c.unit,c.reason];return c}
+function PRC(){return {inputs:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]}}
+var DEF={roasts:{tab:'Roast Batches',read:'A1:O1000',cols:RBC},adj:{tab:'Adjustments',read:'A1:H1000',cols:ADC},prod:{tab:'Products',read:'A1:Z200',cols:PRC}};
+async function sheetCall(tool,args){args.spreadsheetId=SH.id;var res=await MCP.callTool('Google Sheets',tool,args,{cache:false});var p=res&&res.payload;if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){}}return p}
+async function readGrid(kind){var p=await sheetCall('get_values',{range:qt(DEF[kind].tab)+DEF[kind].read});return (p&&p.values)||[]}
+function canWrite(){return !!(MCP&&SH.id&&HR.loaded&&!HR.sample)}
+/* make(C) returns {columnIndex: value}; orig = {row, r} for an edit or delete, null for a new entry */
+async function commit(kind,make,orig,clear){
+  if(!canWrite())throw gerr('no_sheet');
+  var d=DEF[kind],g=await readGrid(kind),C=d.cols(g[0]||[]),row=null,i;
+  function key(r){return C.inputs.map(function(c){return norm(r&&r[c])}).join('\u0001')}
+  if(orig){
+    var want=key(orig.r);
+    if(key(g[orig.row-1])===want)row=orig.row;
+    else for(i=1;i<g.length;i++){if(key(g[i])===want){row=i+1;break}}
+    if(!row)throw gerr('conflict');
+  }else{
+    for(i=1;i<g.length;i++){if(C.inputs.every(function(c){return norm(g[i]&&g[i][c])===''})){row=i+1;break}}
+    if(!row)row=Math.max(g.length,1)+1;
+  }
+  var sp=spans(C.inputs),tab=qt(d.tab);
+  if(clear){await sheetCall('batch_clear_values',{ranges:sp.map(function(s){return tab+L(s[0])+row+':'+L(s[1])+row})});return row}
+  var v=make(C);
+  for(var k=0;k<sp.length;k++){var s=sp[k],arr=[];for(var c=s[0];c<=s[1];c++)arr.push(v[c]===undefined||v[c]===null?'':v[c]);await sheetCall('update_values',{range:tab+L(s[0])+row+':'+L(s[1])+row,values:[arr]})}
+  return row;
+}
+function writeErr(e){
+  var c=e&&e.code,det=((e&&e.message)||'')+' '+(function(){try{return JSON.stringify((e&&e.result)||'')}catch(x){return ''}})();
+  if(c==='conflict')return 'This entry was changed in the sheet after you opened it, so nothing was saved. The latest version is loaded now; make your change again.';
+  if(c==='no_sheet')return 'Refresh from your Google Sheet first. Sample data can’t be saved.';
+  if(c==='not_in_manifest'||c==='approval_required')return 'This page needs your permission to update the sheet. Allow it when asked, then save again.';
+  if(c==='blocked_by_policy')return 'Your organization doesn’t allow this page to edit Google Sheets.';
+  if(c==='needs_reauth')return typeof STANDALONE!=='undefined'?'Your Google sign-in expired. Save again and sign in when Google asks.':'Your Google connection needs to be renewed. Reconnect Google Sheets in Settings, then save again.';
+  if(c==='server_not_connected')return 'Google Sheets isn’t connected. Connect it, then save again.';
+  if(/403|permission|forbidden|insufficient|denied|protected/i.test(det))return 'Your Google account can view this sheet but not edit it. Ask the sheet’s owner for edit access, then save again.';
+  return 'Could not save to the sheet ('+(c||'unknown error')+'). Nothing was changed; try again.';
+}
+/* ---------- dates and units ---------- */
+function pad(n){return (n<10?'0':'')+n}
+function todayIso(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function isoOf(s){s=norm(s);if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);var d=new Date(s);return isNaN(d)?'':d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function serial(iso){var p=iso.split('-');return Math.round((Date.UTC(+p[0],+p[1]-1,+p[2])-Date.UTC(1899,11,30))/864e5)}
+function fmtD(s){var i=isoOf(s);if(!i)return esc(norm(s)||'No date');var p=i.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);return d.toLocaleDateString(undefined,d.getFullYear()===new Date().getFullYear()?{month:'short',day:'numeric'}:{month:'short',day:'numeric',year:'numeric'})}
+function monthLbl(m){var p=m.split('-');return new Date(+p[0],+p[1]-1,1).toLocaleDateString(undefined,{month:'long',year:'numeric'})}
+var UF={lb:453.592,lbs:453.592,kg:1000,g:1,oz:28.3495};
+function toG(q,u){return num(q)*(UF[String(u||'').toLowerCase().trim()]||0)}
+function unitOpts(sel,blank){return (blank?'<option value="">'+blank+'</option>':'')+['g','kg','lb','oz'].map(function(x){return '<option'+(x===sel?' selected':'')+'>'+x+'</option>'}).join('')}
+function lotOpts(sel){
+  var h='<option value="">Choose a lot</option>'+HR.lots.map(function(l){return '<option value="'+esc(l.id)+'"'+(l.id===sel?' selected':'')+'>'+esc(l.id)+' — '+kg(l.leftG)+' green left</option>'}).join('');
+  if(sel&&!HR.lots.some(function(l){return l.id===sel}))h+='<option selected value="'+esc(sel)+'">'+esc(sel)+' (not in Green Lots)</option>';
+  return h;
+}
+function lotBy(id){for(var i=0;i<HR.lots.length;i++)if(HR.lots[i].id===id)return HR.lots[i];return null}
+function entriesOf(kind){var g=SH.grids[kind]||[],C=DEF[kind].cols(g[0]||[]),out=[];for(var i=1;i<g.length;i++){var r=g[i]||[];if(C.inputs.some(function(c){return norm(r[c])!==''}))out.push({row:i+1,r:r})}return {C:C,list:out}}
+function byNewest(C){return function(a,b){var x=isoOf(a.r[C.date]),y=isoOf(b.r[C.date]);return x===y?b.row-a.row:(x<y?1:-1)}}
+function setMsg(id,t,c){var e=$(id);e.textContent=t;e.className='sub '+(c||'')}
+function busy(btn,on,label){btn.disabled=on;if(on){btn.dataset.lbl=btn.textContent;btn.textContent=label||'Saving…'}else if(btn.dataset.lbl){btn.textContent=btn.dataset.lbl}}
+async function freshen(){if(canWrite()&&Date.now()-(HR.at||0)>30000)await loadHouse(true)}
+
+/* ---------- overview ---------- */
+function renderOverview(){
+  var floor=HR.set.floor||2000,tg=0,tv=0,tr=0,low=0;
+  var rows=HR.beans.map(function(b){var c=beanCost(b),st=b.greenLeft<=0?2:(b.greenLeft<floor?1:0);if(st)low++;tg+=Math.max(0,b.greenLeft);tv+=Math.max(0,b.greenLeft)*b.greenG;tr+=Math.max(0,b.roastedHand);return {b:b,c:c,st:st}});
+  rows.sort(function(a,b){return b.st-a.st||a.b.name.localeCompare(b.b.name)});
+  $('ovKpis').innerHTML='<div><small>Green on hand</small><b>'+kg(tg)+'</b></div><div><small>Value of green on hand</small><b>'+money(tv)+'</b></div><div><small>Roasted on hand</small><b>'+kg(tr)+'</b></div><div><small>Beans low or out</small><b class="'+(low?'warnc':'')+'">'+low+'</b></div>';
+  var t='<tr><th>Bean</th><th>Status</th><th>Green left</th><th>Roasted on hand</th><th>Cost per sellable g</th><th>Lost to roasting &amp; testing</th></tr>';
+  if(!rows.length)t+='<tr><td colspan="6" class="note">No beans loaded yet. Refresh from your Google Sheet, or try the sample beans.</td></tr>';
+  rows.forEach(function(x){var pill=x.st===2?'<span class="pill out">Out of green</span>':(x.st===1?'<span class="pill">Low</span>':'<span class="pill ok">OK</span>');
+    t+='<tr><td class="bean">'+esc(x.b.name)+'</td><td>'+pill+'</td><td>'+kg(Math.max(0,x.b.greenLeft))+'</td><td>'+kg(Math.max(0,x.b.roastedHand))+'</td><td>$'+x.c.g.toFixed(4)+'</td><td>'+(x.c.basis==='not roasted yet'?'<span class="note">not roasted yet</span>':Math.round((1-x.c.yield)*100)+'%')+'</td></tr>'});
+  $('ovT').innerHTML=t;
+  $('ovNote').textContent='Low means less than '+kg(floor)+' of green left, the low-stock floor in your Settings tab.';
+}
+
+/* ---------- roasts ---------- */
+function fillFilters(selB,selM,list,beanOf,dateOf){
+  var bs={},ms={};list.forEach(function(e){var b=beanOf(e);if(b)bs[b]=1;var d=isoOf(dateOf(e));if(d)ms[d.slice(0,7)]=1});
+  var bv=$(selB).value,mv=$(selM).value;
+  $(selB).innerHTML='<option value="">All beans</option>'+Object.keys(bs).sort().map(function(b){return '<option'+(b===bv?' selected':'')+'>'+esc(b)+'</option>'}).join('');
+  $(selM).innerHTML='<option value="">All months</option>'+Object.keys(ms).sort().reverse().map(function(m){return '<option value="'+m+'"'+(m===mv?' selected':'')+'>'+monthLbl(m)+'</option>'}).join('');
+}
+function renderRoasts(){
+  var E=entriesOf('roasts'),C=E.C,list=E.list.sort(byNewest(C));
+  fillFilters('rFBean','rFMonth',list,function(e){return norm(e.r[C.bean])},function(e){return e.r[C.date]});
+  var fb=$('rFBean').value,fm=$('rFMonth').value;
+  list=list.filter(function(e){return (!fb||norm(e.r[C.bean])===fb)&&(!fm||isoOf(e.r[C.date]).slice(0,7)===fm)});
+  var gG=0,rG=0,prof=0;list.forEach(function(e){gG+=num(e.r[C.greenG]);if(/profil|test/i.test(norm(e.r[C.purpose])))prof++;else rG+=num(e.r[C.roastG])});
+  $('rSum').innerHTML=list.length?'<div><small>Roasts</small><b>'+list.length+'</b></div><div><small>Green roasted</small><b>'+kg(gG)+'</b></div><div><small>Roasted for sale</small><b>'+kg(rG)+'</b></div><div><small>Profiling / test roasts</small><b>'+prof+'</b></div>':'';
+  if(!list.length){$('rList').innerHTML='<p class="note">'+(HR.sample?'Sample mode has no roasts. Refresh from your Google Sheet to see and log real roasts.':(E.list.length?'No roasts match these filters.':'No roasts logged yet. Press Log a roast to add the first one.'))+'</p>';return}
+  $('rList').innerHTML=list.map(function(e){var r=e.r,test=/profil|test/i.test(norm(r[C.purpose])),out=norm(r[C.roastOut]);
+    return '<div class="entry"><div class="e-main"><div><b>'+fmtD(r[C.date])+'</b> · '+esc(norm(r[C.bean])||norm(r[C.lot]))+(test?' <span class="pill">Profiling / test</span>':'')+'</div>'+
+    '<div class="e-sub">'+esc(norm(r[C.greenIn]))+' '+esc(norm(r[C.unitG]))+' green → '+(out?esc(out)+' '+esc(norm(r[C.unitR])||norm(r[C.unitG]))+' · '+esc(norm(r[C.yieldP])||'—')+' yield':'not weighed ('+esc(norm(r[C.yieldP])||'—')+' yield assumed)')+' · '+esc(norm(r[C.cost])||'—')+(test?' counted as loss':' · '+esc(norm(r[C.cpg])||'—')+'/g')+'</div>'+
+    (norm(r[C.notes])?'<div class="e-sub">'+esc(norm(r[C.notes]))+'</div>':'')+'</div><button data-redit="'+e.row+'" data-needsheet>Edit</button></div>'}).join('');
+}
+function roastForm(e){
+  var g=SH.grids.roasts,C=RBC((g&&g[0])||[]),r=e?e.r:[],last=entriesOf('roasts').list.sort(byNewest(C))[0];
+  var unit=e?norm(r[C.unitG]):(last?norm(last.r[C.unitG]):'g'),test=e&&/profil|test/i.test(norm(r[C.purpose]));
+  FORM={kind:'roasts',entry:e||null};
+  $('rForm').innerHTML='<h3 style="border:0;margin:0 0 10px;padding:0">'+(e?'Edit roast':'Log a roast')+'</h3><div class="fgrid">'+
+   '<div><label for="rfDate">Date roasted</label><input id="rfDate" type="date" value="'+(e?isoOf(r[C.date]):todayIso())+'"></div>'+
+   '<div class="wide"><label for="rfLot">Green lot</label><select id="rfLot">'+lotOpts(e?norm(r[C.lot]):'')+'</select></div>'+
+   '<div><label for="rfGreen">Green in</label><div class="pair"><input id="rfGreen" type="number" min="0" step="any" inputmode="decimal" value="'+esc(e?num(r[C.greenIn]):'')+'"><select id="rfGU" aria-label="Green unit">'+unitOpts(unit||'g')+'</select></div></div>'+
+   '<div><label for="rfOut">Roasted out (optional)</label><div class="pair"><input id="rfOut" type="number" min="0" step="any" inputmode="decimal" placeholder="Not weighed" value="'+esc(e&&norm(r[C.roastOut])?num(r[C.roastOut]):'')+'"><select id="rfRU" aria-label="Roasted unit">'+unitOpts(e?norm(r[C.unitR]):'','Same unit')+'</select></div></div>'+
+   '<div class="wide"><span class="flabel">Purpose</span><div class="seg"><label><input type="radio" name="rfP" value="Production"'+(test?'':' checked')+'> Production</label><label><input type="radio" name="rfP" value="Profiling / test"'+(test?' checked':'')+'> Profiling / test (counted as loss)</label></div></div>'+
+   '<div class="wide"><label for="rfNotes">Notes</label><input id="rfNotes" type="text" value="'+esc(e?norm(r[C.notes]):'')+'"></div></div>'+
+   '<p class="sub warnc" id="rfWarn"></p>'+formBtns('rf',!!e);
+  $('rForm').hidden=false;roastWarn();$('rfDate').focus();
+}
+function formBtns(p,edit){return '<div class="bar" style="margin:10px 0 0"><button id="'+p+'Save" class="pri">Save to sheet</button><button id="'+p+'Cancel">Cancel</button>'+(edit?'<button id="'+p+'Del" class="ghostdanger">Delete</button>':'')+'</div><div id="'+p+'Confirm" class="confirm" hidden>Delete this entry? Its white cells in the sheet are cleared; the row and its formulas stay. <div class="bar" style="margin:8px 0 0"><button id="'+p+'Yes" class="danger">Yes, delete</button><button id="'+p+'No">Keep it</button></div></div><p class="sub" id="'+p+'Msg" role="status"></p>'}
+function roastWarn(){
+  var l=lotBy($('rfLot').value),gi=toG($('rfGreen').value,$('rfGU').value),back=0,w='';
+  if(FORM.entry){var C=RBC(SH.grids.roasts[0]||[]);if(norm(FORM.entry.r[C.lot])===$('rfLot').value)back=num(FORM.entry.r[C.greenG])}
+  if(l&&gi>l.leftG+back+0.5)w='That is more than the '+kg(l.leftG+back)+' of green left in this lot. You can still save it if the lot count is off.';
+  var out=toG($('rfOut').value,$('rfRU').value||$('rfGU').value);
+  if(!w&&gi>0&&out>gi)w='Roasted out is more than green in. Check the units.';
+  $('rfWarn').textContent=w;
+}
+async function saveRoast(){
+  var date=$('rfDate').value,lot=$('rfLot').value,gi=$('rfGreen').value,out=$('rfOut').value,btn=$('rfSave');
+  if(!date||!lot||!(num(gi)>0)){setMsg('rfMsg','Add the date, the green lot and how much green went in.','neg');return}
+  var gu=$('rfGU').value,ru=$('rfRU').value,notes=$('rfNotes').value.trim(),purpose=document.querySelector('input[name="rfP"]:checked').value,e=FORM.entry;
+  busy(btn,true);setMsg('rfMsg','Checking the sheet and saving…');
+  try{
+    var row=await commit('roasts',function(C){var v={};v[C.date]=serial(date);v[C.lot]=lot;v[C.greenIn]=num(gi);v[C.unitG]=gu;v[C.roastOut]=out===''?'':num(out);v[C.unitR]=out===''?'':ru;v[C.notes]=notes;v[C.purpose]=purpose;return v},e);
+    await loadHouse(true);closeForm();
+    var x=entriesOf('roasts'),C=x.C,s=x.list.filter(function(k){return k.row===row})[0];
+    setMsg('rMsg',s?'Saved to row '+row+': '+fmtD(s.r[C.date])+' · '+norm(s.r[C.bean])+' · '+norm(s.r[C.yieldP])+' yield · '+(purpose==='Production'?norm(s.r[C.cpg])+' per roasted g.':'counted as testing loss.'):'Saved to row '+row+' of Roast Batches.','pos');
+  }catch(err){busy(btn,false);setMsg('rfMsg',writeErr(err),'neg');if(err&&err.code==='conflict'){await loadHouse(true);closeForm();setMsg('rMsg',writeErr(err),'neg')}}
+}
+
+/* ---------- adjustments ---------- */
+var REASONS=['Testing / profiling','Cupping / QC','Spill / waste','Stock count correction','Other'];
+function renderAdj(){
+  var E=entriesOf('adj'),C=E.C,list=E.list.sort(byNewest(C));
+  fillFilters('aFBean','aFMonth',list,function(e){return norm(e.r[C.bean])},function(e){return e.r[C.date]});
+  var fb=$('aFBean').value,fm=$('aFMonth').value;
+  list=list.filter(function(e){return (!fb||norm(e.r[C.bean])===fb)&&(!fm||isoOf(e.r[C.date]).slice(0,7)===fm)});
+  var gr=0,ro=0;list.forEach(function(e){var g=num(e.r[C.grams]);if(g<0){if(/roast/i.test(norm(e.r[C.stage])))ro-=g;else gr-=g}});
+  $('aSum').innerHTML=list.length?'<div><small>Entries</small><b>'+list.length+'</b></div><div><small>Green removed</small><b>'+kg(gr)+'</b></div><div><small>Roasted removed</small><b>'+kg(ro)+'</b></div>':'';
+  if(!list.length){$('aList').innerHTML='<p class="note">'+(HR.sample?'Sample mode has no adjustments. Refresh from your Google Sheet to log real ones.':(E.list.length?'No adjustments match these filters.':'No adjustments yet. Log beans used for testing, cupping, spills or a stock count correction.'))+'</p>';return}
+  $('aList').innerHTML=list.map(function(e){var r=e.r,q=num(r[C.qty]);
+    return '<div class="entry"><div class="e-main"><div><b>'+fmtD(r[C.date])+'</b> · '+esc(norm(r[C.bean])||norm(r[C.lot]))+' <span class="pill '+(q<0?'':'ok')+'">'+esc(norm(r[C.stage])||'Green')+' '+(q<0?'removed':'added')+'</span></div><div class="e-sub">'+(q<0?'−':'+')+esc(String(Math.abs(q)))+' '+esc(norm(r[C.unit]))+' · '+esc(norm(r[C.reason])||'No reason given')+'</div></div><button data-aedit="'+e.row+'" data-needsheet>Edit</button></div>'}).join('');
+}
+function adjForm(e){
+  var C=ADC((SH.grids.adj[0])||[]),r=e?e.r:[],q=e?num(r[C.qty]):0,stage=e?norm(r[C.stage]):'Green',reason=e?norm(r[C.reason]):'Testing / profiling';
+  FORM={kind:'adj',entry:e||null};
+  $('aForm').innerHTML='<h3 style="border:0;margin:0 0 10px;padding:0">'+(e?'Edit adjustment':'Log an adjustment')+'</h3><div class="fgrid">'+
+   '<div><label for="afDate">Date</label><input id="afDate" type="date" value="'+(e?isoOf(r[C.date]):todayIso())+'"></div>'+
+   '<div class="wide"><label for="afLot">Lot</label><select id="afLot">'+lotOpts(e?norm(r[C.lot]):'')+'</select></div>'+
+   '<div><span class="flabel">Beans</span><div class="seg"><label><input type="radio" name="afS" value="Green"'+(/roast/i.test(stage)?'':' checked')+'> Green</label><label><input type="radio" name="afS" value="Roasted"'+(/roast/i.test(stage)?' checked':'')+'> Roasted</label></div></div>'+
+   '<div><span class="flabel">Change</span><div class="seg"><label><input type="radio" name="afD" value="-1"'+(q>0?'':' checked')+'> Remove</label><label><input type="radio" name="afD" value="1"'+(q>0?' checked':'')+'> Add back</label></div></div>'+
+   '<div><label for="afQty">Quantity</label><div class="pair"><input id="afQty" type="number" min="0" step="any" inputmode="decimal" value="'+(e?Math.abs(q):'')+'"><select id="afUnit" aria-label="Unit">'+unitOpts(e?norm(r[C.unit]):'g')+'</select></div></div>'+
+   '<div><label for="afReason">Reason</label><select id="afReason">'+REASONS.map(function(x){return '<option'+(x===reason?' selected':'')+'>'+x+'</option>'}).join('')+(reason&&REASONS.indexOf(reason)<0?'<option selected>'+esc(reason)+'</option>':'')+'</select></div></div>'+
+   '<p class="sub">Removed beans for testing, cupping or waste are counted as loss in the bean’s cost per sellable gram.</p>'+formBtns('af',!!e);
+  $('aForm').hidden=false;$('afDate').focus();
+}
+async function saveAdj(){
+  var date=$('afDate').value,lot=$('afLot').value,qty=num($('afQty').value),btn=$('afSave');
+  if(!date||!lot||!(qty>0)){setMsg('afMsg','Add the date, the lot and a quantity above zero.','neg');return}
+  var sign=num(document.querySelector('input[name="afD"]:checked').value),stage=document.querySelector('input[name="afS"]:checked').value,unit=$('afUnit').value,reason=$('afReason').value;
+  busy(btn,true);setMsg('afMsg','Checking the sheet and saving…');
+  try{
+    var row=await commit('adj',function(C){var v={};v[C.date]=serial(date);v[C.lot]=lot;v[C.stage]=stage;v[C.qty]=sign*qty;v[C.unit]=unit;v[C.reason]=reason;return v},FORM.entry);
+    await loadHouse(true);closeForm();
+    setMsg('aMsg','Saved to row '+row+': '+(sign<0?'removed ':'added back ')+qty+' '+unit+' of '+stage.toLowerCase()+' '+(lotBy(lot)?lotBy(lot).bean:lot)+' ('+reason+').','pos');
+  }catch(err){busy(btn,false);setMsg('afMsg',writeErr(err),'neg');if(err&&err.code==='conflict'){await loadHouse(true);closeForm();setMsg('aMsg',writeErr(err),'neg')}}
+}
+
+/* ---------- shared form plumbing ---------- */
+function closeForm(){if(FORM.kind==='roasts'){$('rForm').hidden=true;$('rForm').innerHTML=''}if(FORM.kind==='adj'){$('aForm').hidden=true;$('aForm').innerHTML=''}FORM={kind:null,entry:null}}
+async function delEntry(kind,p,msgId,label){
+  var btn=$(p+'Yes');busy(btn,true,'Deleting…');
+  try{await commit(kind,null,FORM.entry,true);await loadHouse(true);closeForm();setMsg(msgId,'Deleted '+label+'. Its row in the sheet is empty and ready for a new entry.','pos')}
+  catch(err){busy(btn,false);setMsg(p+'Msg',writeErr(err),'neg');if(err&&err.code==='conflict'){await loadHouse(true);closeForm();setMsg(msgId,writeErr(err),'neg')}}
+}
+async function openForm(kind,row){
+  if(!canWrite()){setMsg(kind==='roasts'?'rMsg':'aMsg',writeErr(gerr('no_sheet')),'neg');return}
+  if(FORM.kind)closeForm();
+  await freshen();
+  var e=null;if(row){e=entriesOf(kind).list.filter(function(x){return x.row===row})[0];if(!e){setMsg(kind==='roasts'?'rMsg':'aMsg','That entry is no longer in the sheet. The list has been refreshed.','neg');return}}
+  if(kind==='roasts')roastForm(e);else adjForm(e);
+  $(kind==='roasts'?'rForm':'aForm').scrollIntoView({block:'nearest'});
+}
+document.addEventListener('click',function(ev){
+  var t=ev.target.closest?ev.target.closest('button'):null;if(!t)return;var id=t.id;
+  if(id==='rAdd')openForm('roasts');else if(t.dataset.redit)openForm('roasts',+t.dataset.redit);
+  else if(id==='aAdd')openForm('adj');else if(t.dataset.aedit)openForm('adj',+t.dataset.aedit);
+  else if(id==='rfSave')saveRoast();else if(id==='afSave')saveAdj();
+  else if(id==='rfCancel'||id==='afCancel')closeForm();
+  else if(id==='rfDel'||id==='afDel'){$(id.slice(0,2)+'Confirm').hidden=false}
+  else if(id==='rfNo'||id==='afNo'){$(id.slice(0,2)+'Confirm').hidden=true}
+  else if(id==='rfYes')delEntry('roasts','rf','rMsg','the roast');
+  else if(id==='afYes')delEntry('adj','af','aMsg','the adjustment');
+});
+document.addEventListener('input',function(ev){var t=ev.target;if(/^rf(Lot|Green|GU|Out|RU)$/.test(t.id))roastWarn()});
+document.addEventListener('change',function(ev){var t=ev.target;if(t.id==='rFBean'||t.id==='rFMonth')renderRoasts();else if(t.id==='aFBean'||t.id==='aFMonth')renderAdj();else if(/^rf(Lot|GU|RU)$/.test(t.id))roastWarn()});
+
+/* ---------- products: save straight to the sheet ---------- */
+function editProduct(p){
+  draft=newDraft();draft.name=p.name;draft.parts=p.parts.map(function(x){return {bean:x.bean,pct:x.pct}});draft.use=p.bag||HR.set.bag;draft.row=p.row;draft.orig=p.orig;draft.notes=p.notes||'';
+  if(hrSizes().indexOf(draft.use)<0){$('hrSizes').value=hrSizes().concat([draft.use]).sort(function(a,b){return a-b}).join(', ')}
+  if(p.storeP!=='')draft.store[draft.use]=p.storeP;if(p.onlineP!=='')draft.online[draft.use]=p.onlineP;if(p.cupP!=='')draft.cup=String(p.cupP);if(p.gpc)$('hrGpc').value=p.gpc;draft.tier=p.tier;
+  hrBuild();
+}
+function r2(x){return Math.round(x*100)/100}
+async function saveProduct(){
+  var btn=$('pSave'),parts=partsOf(draft),bc=parts.length?blendCost(parts):null,tot=parts.reduce(function(a,x){return a+x.pct},0),name=draft.name.trim();
+  if(!name||!parts.length||bc===null||Math.abs(tot-1)>0.001){setMsg('pMsg','Give the product a name and beans whose shares add up to 100% first.','neg');return}
+  var dup=HR.products.filter(function(p){return p.name.toLowerCase()===name.toLowerCase()&&p.row!==draft.row})[0];
+  if(dup){setMsg('pMsg','A product called “'+dup.name+'” is already in the Products tab. Edit it from the list, or use another name.','neg');return}
+  var g=draft.use,tm=hv('hrTm')/100,k=bc*g,hasS=draft.store[g]!==undefined&&draft.store[g]!=='',sp=hasS?num(draft.store[g]):atMargin(k,tm);
+  var op=draft.online[g]!==undefined&&draft.online[g]!==''?num(draft.online[g]):(hasS?sp:atMargin(k+hv('hrShip'),tm));
+  var gpc=hv('hrGpc')||HR.set.gpc,cp=draft.cup!==''?num(draft.cup):atMargin(bc*gpc,hv('hrTc')/100),tier=draft.tier,notes=draft.notes||'';
+  busy(btn,true);setMsg('pMsg','Checking the sheet and saving…');
+  try{
+    var row=await commit('prod',function(){var v={0:name};for(var i=0;i<4;i++){var x=parts[i];v[1+i*2]=x?x.bean:'';v[2+i*2]=x&&parts.length>1?Math.round(x.pct*1000)/1000:''}v[9]=g;v[10]=r2(sp);v[11]=r2(op);v[12]=gpc;v[13]=r2(cp);v[14]=tier?num(tier):'';v[15]=notes;return v},draft.row?{row:draft.row,r:draft.orig}:null);
+    await loadHouse(true);
+    busy(btn,false);delete btn.dataset.lbl;
+    var p=HR.products.filter(function(x){return x.row===row})[0];if(p)editProduct(p);setMsg('pMsg','Saved “'+name+'” to row '+row+' of the Products tab: '+g+' g at '+money(sp)+' in-store, '+money(op)+' online, '+money(cp)+' a cup.','pos');
+  }catch(err){busy(btn,false);setMsg('pMsg',writeErr(err),'neg');if(err&&err.code==='conflict')await loadHouse(true)}
+}
+async function deleteProduct(){
+  var btn=$('pYes'),name=draft.name;busy(btn,true,'Deleting…');
+  try{await commit('prod',null,{row:draft.row,r:draft.orig},true);await loadHouse(true);draft=newDraft();hrBuild();busy(btn,false);$('pConfirm').hidden=true;setMsg('pMsg','Deleted “'+name+'” from the Products tab.','pos')}
+  catch(err){busy(btn,false);setMsg('pMsg',writeErr(err),'neg');if(err&&err.code==='conflict')await loadHouse(true)}
+}
+$('pSave').onclick=saveProduct;
+$('pDel').onclick=function(){$('pConfirm').hidden=false};
+$('pNo').onclick=function(){$('pConfirm').hidden=true};
+$('pYes').onclick=deleteProduct;
+$('pNew').onclick=function(){draft=newDraft();hrBuild();setMsg('pMsg','');$('dName').focus()};
+
+/* ---------- needs-a-sheet states, refresh on return ---------- */
+function renderEdit(){
+  renderOverview();renderRoasts();renderAdj();
+  var ok=canWrite();
+  document.querySelectorAll('[data-needsheet]').forEach(function(b){b.disabled=!ok});
+  $('pSave').disabled=!ok;
+  var hint=ok?'':(HR.sample?'Sample data is for trying the planner. Refresh from your Google Sheet to save.':(MCP?'Refresh from your Google Sheet to log entries.':'This view can read the sheet but can’t save to it.'));
+  ['rHint','aHint','pHint'].forEach(function(id){var e=$(id);e.textContent=hint;e.hidden=!hint});
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible'&&canWrite()&&!FORM.kind&&location.hash.indexOf('#house')===0&&Date.now()-(HR.at||0)>60000)loadHouse(true);
+});
+
+renderEdit();
 
 /* ================= Google sign-in (standalone) ================= */
+var STANDALONE=true;
 var GOOGLE_CLIENT_ID='1003289898886-dvje7im7k7rvbitrdd59qr76j8ssc359.apps.googleusercontent.com';
-var GSCOPE='https://www.googleapis.com/auth/spreadsheets.readonly openid email';
+var GSCOPE='https://www.googleapis.com/auth/spreadsheets openid email';
 var auth={token:null,exp:0,email:'',client:null,pending:null};
 function ss(k,v){try{if(v===undefined)return sessionStorage.getItem(k);if(v===null)sessionStorage.removeItem(k);else sessionStorage.setItem(k,v)}catch(e){return null}}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -823,9 +1141,9 @@ function getToken(prompt){
     if(!initClient()){reject(gerr('gis_unavailable'));return}
     auth.client.callback=function(r){
       if(r.error){reject(gerr(r.error==='access_denied'?'signin_declined':'signin_failed'));return}
-      if(!google.accounts.oauth2.hasGrantedAllScopes(r,'https://www.googleapis.com/auth/spreadsheets.readonly')){reject(gerr('scope_declined'));return}
+      if(!google.accounts.oauth2.hasGrantedAllScopes(r,'https://www.googleapis.com/auth/spreadsheets')){reject(gerr('scope_declined'));return}
       auth.token=r.access_token;auth.exp=Date.now()+(r.expires_in-60)*1000;
-      ss('gtok',JSON.stringify({t:auth.token,e:auth.exp}));
+      ss('gtok2',JSON.stringify({t:auth.token,e:auth.exp}));
       resolve(auth.token);
     };
     auth.client.error_callback=function(e){reject(gerr(e&&e.type==='popup_closed'?'signin_declined':'signin_failed'))};
@@ -847,20 +1165,21 @@ async function signIn(){
     var c=e&&e.code;
     authMsg(c==='gis_unavailable'?'Google sign-in did not load. Check your connection or turn off content blockers for this site, then reload the page.':
       c==='signin_declined'?'Sign-in was cancelled. Press Sign in with Google to try again.':
-      c==='scope_declined'?'The app needs permission to view your Google Sheets. Sign in again and tick the box for Google Sheets.':
+      c==='scope_declined'?'The app needs permission to see and edit your Google Sheets. Sign in again and tick the box for Google Sheets.':
       'Google sign-in failed. Reload the page and try again.');
   }finally{$('gsignin').disabled=false}
 }
 function signOut(){
   if(auth.token&&window.google&&google.accounts&&google.accounts.oauth2)google.accounts.oauth2.revoke(auth.token,function(){});
-  auth.token=null;auth.exp=0;auth.email='';ss('gtok',null);ss('gemail',null);ls('gemail',null);
+  auth.token=null;auth.exp=0;auth.email='';ss('gtok2',null);ss('gemail',null);ls('gemail',null);
   showSignedIn();authMsg('Signed out.');
 }
 /* Sheets API calls, shaped like the connector calls the rest of the page already makes */
-async function sheetsFetch(url){
+async function sheetsFetch(url,method,body){
   if(!auth.token||Date.now()>auth.exp){try{await getToken('')}catch(e){throw gerr('needs_reauth')}}
-  var r=await fetch(url,{headers:{Authorization:'Bearer '+auth.token}});
-  if(r.status===401){try{await getToken('');r=await fetch(url,{headers:{Authorization:'Bearer '+auth.token}})}catch(e){throw gerr('needs_reauth')}}
+  function go(){var o={method:method||'GET',headers:{Authorization:'Bearer '+auth.token}};if(body!==undefined){o.headers['Content-Type']='application/json';o.body=JSON.stringify(body)}return fetch(url,o)}
+  var r=await go();
+  if(r.status===401){try{await getToken('');r=await go()}catch(e){throw gerr('needs_reauth')}}
   if(r.status===401)throw gerr('needs_reauth');
   var body=await r.text(),j=null;try{j=JSON.parse(body)}catch(e){}
   if(!r.ok){var err=gerr('tool_error');err.message=r.status+' '+((j&&j.error&&j.error.message)||body.slice(0,300));err.result=j;throw err}
@@ -870,11 +1189,13 @@ var SHEETS={callTool:async function(server,tool,args){
   var base='https://sheets.googleapis.com/v4/spreadsheets/'+encodeURIComponent(args.spreadsheetId);
   if(tool==='get_values')return {payload:await sheetsFetch(base+'/values/'+encodeURIComponent(args.range)+'?valueRenderOption=FORMATTED_VALUE')};
   if(tool==='get_spreadsheet')return {payload:await sheetsFetch(base+'?fields='+encodeURIComponent((args.fields||[]).join(',').replace(/^sheets\./,'sheets(').replace(/,sheets\./g,',')+((args.fields||[]).length?')':'')))};
+  if(tool==='update_values')return {payload:await sheetsFetch(base+'/values/'+encodeURIComponent(args.range)+'?valueInputOption=RAW','PUT',{range:args.range,majorDimension:'ROWS',values:args.values})};
+  if(tool==='batch_clear_values')return {payload:await sheetsFetch(base+'/values:batchClear','POST',{ranges:args.ranges})};
   throw gerr('tool_error');
 }};
 $('gsignin').onclick=signIn;$('gsignout').onclick=signOut;
 (function restore(){
-  var t=null;try{t=JSON.parse(ss('gtok')||'null')}catch(e){}
+  var t=null;try{t=JSON.parse(ss('gtok2')||'null')}catch(e){}
   if(t&&t.t&&t.e>Date.now()){auth.token=t.t;auth.exp=t.e;auth.email=ss('gemail')||ls('gemail')||''}
   showSignedIn();
   if(auth.token&&$('gsurl').value.trim())$('gsrefresh').onclick();
