@@ -86,6 +86,15 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .confirm{border:1px solid var(--neg);border-radius:8px;padding:10px;margin-top:10px}
 .pill.ok{background:var(--accbg);color:var(--acc)}
 .pill.out{background:var(--neg);color:var(--bg)}
+@media (max-width:560px){
+ #cT tr:first-child{display:none}
+ #cT tr{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;padding:10px 0;border-bottom:1px solid var(--line)}
+ #cT td{border:0;padding:0}
+ #cT td.bean{grid-column:1/-1}
+ #cT td:nth-child(3){grid-column:1/-1;order:3}
+ #cT td:nth-child(2)::before{content:"In the app";display:block;color:var(--mute);font-size:12px}
+ #cT td:nth-child(4)::before{content:"Difference";display:block;color:var(--mute);font-size:12px;font-weight:400}
+}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -184,11 +193,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </section>
 
 <section data-sub="adjustments">
-<div class="sechead"><h2>Adjustments</h2><button id="aAdd" class="pri" data-needsheet>Log an adjustment</button></div>
-<p class="sub">Beans used for testing or cupping, spills, and corrections after a stock count.</p>
+<div class="sechead"><h2>Adjustments</h2><div class="bar" style="margin:0"><button id="cAdd" data-needsheet>Count stock</button><button id="aAdd" class="pri" data-needsheet>Log an adjustment</button></div></div>
+<p class="sub">Beans used for testing or cupping, spills, and corrections after a stock count. To bring green on hand in line with a physical count, use Count stock.</p>
 <p class="sub" id="aHint" hidden></p>
 <p class="sub" id="aMsg" role="status"></p>
 <div id="aForm" class="formcard" hidden></div>
+<div id="cForm" class="formcard" hidden></div>
 <div class="filters"><div><label for="aFBean">Bean</label><select id="aFBean"><option value="">All beans</option></select></div><div><label for="aFMonth">Month</label><select id="aFMonth"><option value="">All months</option></select></div></div>
 <div class="kpis" id="aSum"></div>
 <div id="aList" class="entries"></div>
@@ -1049,7 +1059,7 @@ async function saveAdj(){
 }
 
 /* ---------- shared form plumbing ---------- */
-function closeForm(){if(FORM.kind==='roasts'){$('rForm').hidden=true;$('rForm').innerHTML=''}if(FORM.kind==='adj'){$('aForm').hidden=true;$('aForm').innerHTML=''}FORM={kind:null,entry:null}}
+function closeForm(){if(FORM.kind==='roasts'){$('rForm').hidden=true;$('rForm').innerHTML=''}if(FORM.kind==='adj'){$('aForm').hidden=true;$('aForm').innerHTML=''}if(FORM.kind==='count'){$('cForm').hidden=true;$('cForm').innerHTML=''}FORM={kind:null,entry:null}}
 async function delEntry(kind,p,msgId,label){
   var btn=$(p+'Yes');busy(btn,true,'Deleting…');
   try{await commit(kind,null,FORM.entry,true);await loadHouse(true);closeForm();setMsg(msgId,'Deleted '+label+'. Its row in the sheet is empty and ready for a new entry.','pos')}
@@ -1111,6 +1121,70 @@ $('pDel').onclick=function(){$('pConfirm').hidden=false};
 $('pNo').onclick=function(){$('pConfirm').hidden=true};
 $('pYes').onclick=deleteProduct;
 $('pNew').onclick=function(){draft=newDraft();hrBuild();setMsg('pMsg','');$('dName').focus()};
+
+/* ---------- stock count: enter what's on the shelf, log the differences ---------- */
+var COUNT={vals:{}};
+function lotUnit(l){var u=String(l.unit||'').toLowerCase();return UF[u]?u:'g'}
+function inUnit(g,u){var f=UF[u]||1;return Math.round(g/f*100)/100}
+function countRows(){
+  return HR.lots.map(function(l){var v=COUNT.vals[l.id]||{q:'',u:lotUnit(l)};var counted=v.q===''?null:toG(v.q,v.u);return {l:l,v:v,counted:counted,diff:counted===null?null:Math.round((counted-l.leftG)*10)/10}});
+}
+function countForm(){
+  FORM={kind:'count',entry:null};
+  var rows=HR.lots.slice().sort(function(a,b){return a.bean.localeCompare(b.bean)||a.id.localeCompare(b.id)});
+  $('cForm').innerHTML='<h3 style="border:0;margin:0 0 6px;padding:0">Count stock</h3>'+
+   '<p class="sub">Enter how much green you actually have for each lot you counted. Leave a lot blank to skip it. When you save, the app logs one “Stock count correction” per lot that differs, so green left matches your count.</p>'+
+   '<div class="fgrid" style="max-width:420px;margin-bottom:10px"><div><label for="cfDate">Date counted</label><input id="cfDate" type="date" value="'+todayIso()+'"></div></div>'+
+   '<div class="wrap"><table id="cT"><tr><th>Lot</th><th>Green left in the app</th><th>Counted</th><th>Difference</th></tr>'+
+   rows.map(function(l,i){var u=lotUnit(l),v=COUNT.vals[l.id]||{q:'',u:u};
+     return '<tr><td class="bean">'+esc(l.id)+'</td><td>'+inUnit(l.leftG,u).toLocaleString()+' '+u+'<div class="note" style="margin:0">'+kg(l.leftG)+'</div></td><td><div class="pair" style="min-width:170px"><input type="number" min="0" step="any" inputmode="decimal" data-cnt="'+esc(l.id)+'" value="'+esc(v.q)+'" aria-label="Counted, '+esc(l.id)+'"><select data-cntu="'+esc(l.id)+'" aria-label="Unit, '+esc(l.id)+'">'+unitOpts(v.u)+'</select></div></td><td data-cdiff="'+esc(l.id)+'">—</td></tr>'}).join('')+
+   '</table></div><p class="sub" id="cSum"></p>'+
+   '<div class="bar" style="margin:10px 0 0"><button id="cfSave" class="pri">Save count to sheet</button><button id="cfClear">Clear counts</button><button id="cfCancel">Cancel</button></div><p class="sub" id="cfMsg" role="status"></p>';
+  $('cForm').hidden=false;countUpdate();
+}
+function countUpdate(){
+  var n=0,ch=0,minus=0,plus=0;
+  countRows().forEach(function(x){
+    var td=document.querySelector('[data-cdiff="'+CSS.escape(x.l.id)+'"]');if(!td)return;
+    if(x.diff===null){td.textContent='—';td.className='';return}
+    n++;
+    if(Math.abs(x.diff)<0.5){td.textContent='Matches';td.className='pos';return}
+    ch++;if(x.diff<0)minus-=x.diff;else plus+=x.diff;
+    var u=x.v.u;td.textContent=(x.diff<0?'−':'+')+inUnit(Math.abs(x.diff),u).toLocaleString()+' '+u;td.className=x.diff<0?'neg':'pos';
+  });
+  $('cSum').textContent=n?n+' lot'+(n===1?'':'s')+' counted · '+ch+' to adjust'+(ch?' ('+(minus?'−'+kg(minus):'')+(minus&&plus?', ':'')+(plus?'+'+kg(plus):'')+')':'')+'. Shrinkage you log here counts as loss in that bean’s cost per sellable gram.':'No lots counted yet.';
+}
+async function saveCount(){
+  var btn=$('cfSave'),date=$('cfDate').value;
+  if(!date){setMsg('cfMsg','Add the date you counted.','neg');return}
+  if(!countRows().some(function(x){return x.diff!==null})){setMsg('cfMsg','Enter a count for at least one lot.','neg');return}
+  busy(btn,true);setMsg('cfMsg','Reading the latest totals from the sheet…');
+  try{
+    await loadHouse(true);
+    /* differences are worked out again from the fresh totals, so a roast logged meanwhile is not double-counted */
+    var todo=countRows().filter(function(x){return x.diff!==null&&Math.abs(x.diff)>=0.5});
+    if(!todo.length){busy(btn,false);closeForm();setMsg('aMsg','Your count matches the sheet for every lot you counted. Nothing needed adjusting.','pos');COUNT.vals={};return}
+    setMsg('cfMsg','Saving '+todo.length+' adjustment'+(todo.length===1?'':'s')+'…');
+    var g=await readGrid('adj'),C=ADC(g[0]||[]),rows=[],i;
+    for(i=1;i<g.length&&rows.length<todo.length;i++){if(C.inputs.every(function(c){return norm(g[i]&&g[i][c])===''}))rows.push(i+1)}
+    var next=Math.max(g.length,1)+1;while(rows.length<todo.length)rows.push(next++);
+    var sp=spans(C.inputs),tab=qt(DEF.adj.tab);
+    for(var k=0;k<todo.length;k++){
+      var x=todo[k],v={};v[C.date]=serial(date);v[C.lot]=x.l.id;v[C.stage]='Green';v[C.qty]=x.diff;v[C.unit]='g';v[C.reason]='Stock count correction';
+      for(var s=0;s<sp.length;s++){var a=sp[s],arr=[];for(var c=a[0];c<=a[1];c++)arr.push(v[c]===undefined?'':v[c]);await sheetCall('update_values',{range:tab+L(a[0])+rows[k]+':'+L(a[1])+rows[k],values:[arr]})}
+    }
+    COUNT.vals={};await loadHouse(true);closeForm();
+    setMsg('aMsg','Saved your count: '+todo.length+' stock count correction'+(todo.length===1?'':'s')+' logged. Green left now matches what you counted.','pos');
+  }catch(err){busy(btn,false);setMsg('cfMsg',writeErr(err)+' Lots already saved show in the list below; count the rest again.','neg');try{await loadHouse(true)}catch(e){}}
+}
+document.addEventListener('input',function(ev){var t=ev.target;if(t.dataset.cnt!==undefined){var id=t.dataset.cnt,v=COUNT.vals[id]||{q:'',u:'g'};v.q=t.value;v.u=document.querySelector('[data-cntu="'+CSS.escape(id)+'"]').value;COUNT.vals[id]=v;countUpdate()}});
+document.addEventListener('change',function(ev){var t=ev.target;if(t.dataset.cntu!==undefined){var id=t.dataset.cntu,v=COUNT.vals[id]||{q:'',u:t.value};v.u=t.value;COUNT.vals[id]=v;countUpdate()}});
+document.addEventListener('click',function(ev){var t=ev.target.closest?ev.target.closest('button'):null;if(!t)return;
+  if(t.id==='cAdd'){(async function(){if(!canWrite()){setMsg('aMsg',writeErr(gerr('no_sheet')),'neg');return}if(FORM.kind)closeForm();await freshen();countForm();$('cForm').scrollIntoView({block:'nearest'})})()}
+  else if(t.id==='cfSave')saveCount();
+  else if(t.id==='cfCancel')closeForm();
+  else if(t.id==='cfClear'){COUNT.vals={};countForm()}
+});
 
 /* ---------- needs-a-sheet states, refresh on return ---------- */
 function renderEdit(){
