@@ -124,7 +124,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </div>
 <div id="msg" class="sub" role="status"></div>
 <div class="wrap"><table id="inp"></table></div>
-<div class="ctl" style="max-width:700px"><div><label for="inship">Total shipping cost for the beans, shipped to us ($)</label><input id="inship" type="number" min="0" step="0.05" value="0"><div class="sub" id="shipNote" style="margin:2px 0 0"></div></div><div><label for="tm">Target margin per pour over cup (%)</label><input id="tm" type="number" min="0" max="95" step="1" value="80"><div class="sub" style="margin:2px 0 0">Sets the suggested cup price from bean cost. Type your own cup price, or a margin for one bean, in the table to override it.</div></div></div>
+<div class="ctl" style="max-width:700px"><div><label for="inship">Total shipping cost for the beans, shipped to us ($)</label><input id="inship" type="number" min="0" step="0.05" value="0"><div class="sub" id="shipNote" style="margin:2px 0 0"></div></div><div><label for="tm">Target margin for pour over and retail (%)</label><input id="tm" type="number" min="0" max="95" step="1" value="80"><div class="sub" style="margin:2px 0 0">Sets the suggested cup price and retail bag price from bean cost. Type your own price, or a margin for one bean, in the table to override it.</div></div></div>
 </section>
 
 <section>
@@ -253,7 +253,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </main>
 
 <script>
-var COLS=[['name','Bean'],['bagCost','Bag cost ($)'],['bagGrams','Bag grams'],['bags','Bags purchased this month'],['cupPrice','Pour over cup price ($, blank = suggested)'],['gpc','Grams per cup'],['retailPrice','Retail bag price ($)']];
+var COLS=[['name','Bean'],['bagCost','Bag cost ($)'],['bagGrams','Bag grams'],['bags','Bags purchased this month'],['cupPrice','Pour over cup price ($, blank = suggested)'],['gpc','Grams per cup'],['retailPrice','Retail bag price ($, blank = suggested)']];
 var PREFIX=[['tier','tier'],['coffeedescription','name'],['size','bagGrams'],['wholesaleprice','bagCost'],['quantity','bags'],['beanname','name'],['bean','name'],['name','name'],['bagcost','bagCost'],['costperbag','bagCost'],['baggrams','bagGrams'],['gramsperbag','bagGrams'],['bagsize','bagGrams'],['bagspurchased','bags'],['bagsbought','bags'],['bags','bags'],['cupprice','cupPrice'],['pourovercupprice','cupPrice'],['gramspercup','gpc'],['retailprice','retailPrice'],['retailbagprice','retailPrice']];
 var EXTRA=['rB','rS','rP','pB','pC','pP'];
 var beans=[],tiers=[{price:30,subs:'',slots:['']},{price:50,subs:'',slots:['']},{price:72,subs:'',slots:['','']}];
@@ -270,9 +270,12 @@ function fieldFor(h){var k=String(h).toLowerCase().replace(/[^a-z0-9]/g,'');for(
 function nm(b){return b.name||'Unnamed'}
 function suggestCup(b){
   var G=num(b.bagGrams),g=num(b.gpc),c=num(b.bagCost),m=num($('tm').value)/100;
-  return (G>0&&g>0&&c>0&&m>=0&&m<1)?Math.ceil(g*c/G/(1-m)*100)/100:0;
+  return (G>0&&g>0&&c>0&&m>=0&&m<1)?Math.ceil(g*c/G/(1-m)*100-1e-6)/100:0;
 }
 function cupBase(b){return has(b.cupPrice)?num(b.cupPrice):suggestCup(b)}
+/* retail: same target margin as pour over, on the cost of one bag */
+function suggestRetail(b){var c=num(b.bagCost),m=num($('tm').value)/100;return (c>0&&m>=0&&m<1)?Math.ceil(c/(1-m)*100-1e-6)/100:0}
+function retailBase(b){return has(b.retailPrice)?num(b.retailPrice):suggestRetail(b)}
 function field(k,id,i,step,extra){return '<td><input id="'+id+i+'" type="number" min="0" step="'+step+'" data-i="'+i+'" data-k="'+k+'" value="'+String(extra[k])+'"></td>'}
 
 /* ---------- structure ---------- */
@@ -282,7 +285,7 @@ function autosize(el){el.style.height='auto';if(el.scrollHeight>0)el.style.heigh
 function autosizeAll(){document.querySelectorAll('#inp textarea.nm').forEach(autosize)}
 function marginCells(k,i){
   if(k==='gpc')return '<td><input type="number" min="0" max="99" step="0.1" id="cm'+i+'" data-mg="cup" data-i="'+i+'" aria-label="Pour over margin per cup (%) row '+(i+1)+'"></td>';
-  if(k==='retailPrice')return '<td id="rm'+i+'"></td>';
+  if(k==='retailPrice')return '<td><input type="number" min="0" max="99" step="0.1" id="rm'+i+'" data-mg="retail" data-i="'+i+'" aria-label="Retail margin per bag (%) row '+(i+1)+'"></td>';
   return '';
 }
 function build(){
@@ -322,7 +325,7 @@ function plan(b,sb){
   var rem=Math.max(0,total-sb),share=$('sh').value/100,r,p;
   var rT=has(b.rB),pT=has(b.pB);
   if(rT&&pT){r=fl(b.rB);p=fl(b.pB)}else if(rT){r=fl(b.rB);p=Math.max(0,rem-r)}else if(pT){p=fl(b.pB);r=Math.max(0,rem-p)}else{p=Math.round(rem*share);r=rem-p}
-  var rSold=has(b.rS)?Math.min(r,fl(b.rS)):r,rPr=has(b.rP)?num(b.rP):num(b.retailPrice);
+  var rSold=has(b.rS)?Math.min(r,fl(b.rS)):r,rPr=has(b.rP)?num(b.rP):retailBase(b);
   var gpc=num(b.gpc),avail=gpc>0?Math.floor(p*G/gpc):0,cSold=has(b.pC)?Math.min(avail,fl(b.pC)):avail,pPr=has(b.pP)?num(b.pP):cupBase(b);
   return {cost:cost,total:total,sb:sb,rem:rem,r:r,p:p,rSold:rSold,rPr:rPr,rRev:rSold*rPr,rCost:r*cost,avail:avail,cSold:cSold,pPr:pPr,pRev:cSold*pPr,pCost:p*cost,be:pPr>0?Math.ceil(p*cost/pPr):0,unas:total-sb-r-p};
 }
@@ -362,7 +365,7 @@ function update(){
     set('sp'+i,int(p.total));set('su'+i,int(p.sb));
     set('sl'+i,p.total?(p.total-p.sb)+' bags':'\u2014',p.total-p.sb<0?'neg':'');
     if(p.total-p.sb<0)warn.push(nm(b)+': subscriptions use more bags than you bought.');
-    var rb=$('rB_'+i);rb.placeholder=p.r;$('rS_'+i).placeholder=p.r;$('rP_'+i).placeholder=num(b.retailPrice)||'';
+    var rb=$('rB_'+i);rb.placeholder=p.r;$('rS_'+i).placeholder=p.r;$('rP_'+i).placeholder=retailBase(b)?retailBase(b).toFixed(2):'';
     set('rr'+i,money(p.rRev));set('rc'+i,money(p.rCost));set('rg'+i,money(p.rRev-p.rCost),cls(p.rRev-p.rCost));
     $('pB_'+i).placeholder=p.p;$('pC_'+i).placeholder=p.avail;$('pP_'+i).placeholder=cupBase(b)||'';
     var ci=document.querySelector('#inp input[data-i="'+i+'"][data-k="cupPrice"]');if(ci)ci.placeholder=suggestCup(b)?suggestCup(b).toFixed(2):'';
@@ -371,8 +374,9 @@ function update(){
       cm.placeholder=cpc>0?'':'needs grams per cup';
       if(document.activeElement!==cm)cm.value=(cpc>0&&cb>0)?Math.round((cb-cpc)/cb*1000)/10:'';
     }
-    var rpr=num(b.retailPrice),rmg=num(b.bagCost)>0&&rpr>0?Math.round((rpr-num(b.bagCost))/rpr*1000)/10:null;
-    set('rm'+i,rmg===null?'\u2014':rmg+'%',rmg!==null&&rmg<0?'neg':'');
+    var ri=document.querySelector('#inp input[data-i="'+i+'"][data-k="retailPrice"]');if(ri)ri.placeholder=suggestRetail(b)?suggestRetail(b).toFixed(2):'';
+    var rpr=retailBase(b),rm=$('rm'+i);
+    if(rm){rm.placeholder=num(b.bagCost)>0?'':'needs bag cost';if(document.activeElement!==rm)rm.value=(num(b.bagCost)>0&&rpr>0)?Math.round((rpr-num(b.bagCost))/rpr*1000)/10:'';rm.classList.toggle('neg',num(b.bagCost)>0&&rpr>0&&rpr<num(b.bagCost))}
     var cc=num(b.gpc)>0&&num(b.bagGrams)>0?num(b.gpc)*p.cost/num(b.bagGrams):0;
     set('pm'+i,p.pPr>0&&cc>0?Math.round((p.pPr-cc)/p.pPr*100)+'%':'\u2014');
     set('pa'+i,int(p.avail));set('pe'+i,p.pPr>0?int(p.be):'\u2014');
@@ -614,9 +618,17 @@ document.addEventListener('input',function(e){
   if(t.dataset.mg==='cup'){
     var mb=beans[+t.dataset.i],mG=num(mb.bagGrams),mg=num(mb.gpc),mc=num(mb.bagCost),mm=num(t.value)/100;
     if(t.value==='')mb.cupPrice='';
-    else if(mG>0&&mg>0&&mc>0&&mm>=0&&mm<1)mb.cupPrice=Math.ceil(mg*mc/mG/(1-mm)*100)/100;
+    else if(mG>0&&mg>0&&mc>0&&mm>=0&&mm<1)mb.cupPrice=Math.ceil(mg*mc/mG/(1-mm)*100-1e-6)/100;
     var pin=document.querySelector('#inp input[data-i="'+t.dataset.i+'"][data-k="cupPrice"]');
     if(pin)pin.value=mb.cupPrice;
+    update();return;
+  }
+  if(t.dataset.mg==='retail'){
+    var rb=beans[+t.dataset.i],rc=num(rb.bagCost),rmm=num(t.value)/100;
+    if(t.value==='')rb.retailPrice='';
+    else if(rc>0&&rmm>=0&&rmm<1)rb.retailPrice=Math.ceil(rc/(1-rmm)*100-1e-6)/100;
+    var rin=document.querySelector('#inp input[data-i="'+t.dataset.i+'"][data-k="retailPrice"]');
+    if(rin)rin.value=rb.retailPrice;
     update();return;
   }
   if(t.dataset.k!==undefined&&t.dataset.i!==undefined){if(t.tagName==='TEXTAREA'){t.value=t.value.replace(/\n/g,' ');autosize(t)}beans[+t.dataset.i][t.dataset.k]=t.value;update()}
