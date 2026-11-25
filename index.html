@@ -193,6 +193,15 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </section>
 
 <section data-sub="adjustments">
+<div class="sechead"><h2>Green lots</h2><button id="lAdd" class="pri" data-needsheet>Add a green lot</button></div>
+<p class="sub">Every green purchase, newest first. Add a lot when beans arrive, whether it’s a new bean or more of one you already have. It goes straight into the Green Lots tab.</p>
+<p class="sub" id="lMsg" role="status"></p>
+<div id="lForm" class="formcard" hidden></div>
+<div id="lList" class="entries"></div>
+<div class="bar" style="margin:10px 0 0"><button id="lMore" hidden>Show all lots</button></div>
+</section>
+
+<section data-sub="adjustments">
 <div class="sechead"><h2>Adjustments</h2><div class="bar" style="margin:0"><button id="cAdd" data-needsheet>Count stock</button><button id="aAdd" class="pri" data-needsheet>Log an adjustment</button></div></div>
 <p class="sub">Beans used for testing or cupping, spills, and corrections after a stock count. To bring green on hand in line with a physical count, use Count stock.</p>
 <p class="sub" id="aHint" hidden></p>
@@ -710,6 +719,7 @@ function hrSettings(rows){
   if((v=get('online retail shipping'))!==null)s.online=num(v);
   if((v=get('default grams per cup'))!==null)s.gpc=num(v);
   if((v=get('low-stock floor'))!==null)s.floor=num(v);
+  if((v=get('default supplier lead time'))!==null)s.lead=num(v);
   $('hrLoss').value=Math.round((1-s.yield)*1000)/10;$('hrGpc').value=s.gpc;$('hrShip').value=s.online;$('hrSubShip').value=s.subShip;
   var sizes=hrSizes();if(sizes.indexOf(s.bag)<0){sizes.push(s.bag);sizes.sort(function(a,b){return a-b});$('hrSizes').value=sizes.join(', ')}
 }
@@ -749,7 +759,7 @@ async function loadHouse(quiet){
     hrSettings(tabRows(res[3]));
     HR.beans=hrBuildBeans(tabRows(lots),res[0],tabRows(res[1]));
     HR.products=hrProducts(res[2]);
-    SH.id=MCP?id:null;SH.grids={roasts:res[0],adj:res[4],prod:res[2]};
+    SH.id=MCP?id:null;SH.grids={roasts:res[0],adj:res[4],prod:res[2],lots:lots};
     HR.loaded=true;HR.sample=false;HR.at=Date.now();
     $('hrMsg').textContent='Loaded from your sheet at '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+': '+HR.beans.length+' beans, '+entriesOf('roasts').list.length+' roasts, '+HR.products.length+' products.';
     if(draft.row){var dp=HR.products.filter(function(x){return x.row===draft.row})[0];if(dp)draft.orig=dp.orig}
@@ -763,7 +773,7 @@ $('hrSample').onclick=function(){
   function b(n,perLb,left,hand,batches){return {name:n,greenG:perLb/453.592,greenLeft:left,roastedHand:hand,batches:batches||[]}}
   HR.beans=[b('Sample Ethiopia natural',8.25,40000,1500,[{green:4536,roasted:3856,cost:82.5,measured:true},{green:300,roasted:255,cost:5.46,measured:true,test:true}]),b('Sample Colombia washed',6.5,25000,0),b('Sample Yunnan honey',10.04,18000,800,[{green:2268,roasted:2268,cost:50.2,measured:false}]),b('Sample Panama gesha',79.4,1800,0)];
   HR.products=[];var p=newDraft();p.name='Sample House Blend';p.parts[0]={bean:'Sample Colombia washed',pct:'60%'};p.parts[1]={bean:'Sample Ethiopia natural',pct:'40%'};p.bag=100;p.storeP=12;p.onlineP=14;p.gpc=15;p.cupP=5;HR.products.push(p);
-  HR.lots=HR.beans.map(function(b){return {id:b.name+' (sample)',bean:b.name,unit:'g',leftG:b.greenLeft}});SH.id=null;SH.grids={roasts:[],adj:[],prod:[]};
+  HR.lots=HR.beans.map(function(b){return {id:b.name+' (sample)',bean:b.name,unit:'g',leftG:b.greenLeft}});SH.id=null;SH.grids={roasts:[],adj:[],prod:[],lots:[]};
   HR.loaded=true;HR.sample=true;$('hrMsg').textContent='Sample beans are made up. Refresh from your Google Sheet to use your own.';hrBuild();renderEdit();
 };
 
@@ -884,7 +894,7 @@ showView();hrBuild();
 /* The sheet stays the source of truth. Every save re-reads the tab first, writes only the white input
    columns, finds rows by their contents (never a remembered row number), and refuses to overwrite an
    entry that changed in the sheet since it was opened. */
-var SH={id:null,grids:{roasts:[],adj:[],prod:[]}};
+var SH={id:null,grids:{roasts:[],adj:[],prod:[],lots:[]}};
 var FORM={kind:null,entry:null};
 function norm(v){return String(v===undefined||v===null?'':v).trim()}
 function L(i){var s='';i++;while(i>0){var m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s}
@@ -1059,7 +1069,7 @@ async function saveAdj(){
 }
 
 /* ---------- shared form plumbing ---------- */
-function closeForm(){if(FORM.kind==='roasts'){$('rForm').hidden=true;$('rForm').innerHTML=''}if(FORM.kind==='adj'){$('aForm').hidden=true;$('aForm').innerHTML=''}if(FORM.kind==='count'){$('cForm').hidden=true;$('cForm').innerHTML=''}FORM={kind:null,entry:null}}
+function closeForm(){if(FORM.kind==='roasts'){$('rForm').hidden=true;$('rForm').innerHTML=''}if(FORM.kind==='adj'){$('aForm').hidden=true;$('aForm').innerHTML=''}if(FORM.kind==='count'){$('cForm').hidden=true;$('cForm').innerHTML=''}if(FORM.kind==='lots'){$('lForm').hidden=true;$('lForm').innerHTML=''}FORM={kind:null,entry:null}}
 async function delEntry(kind,p,msgId,label){
   var btn=$(p+'Yes');busy(btn,true,'Deleting…');
   try{await commit(kind,null,FORM.entry,true);await loadHouse(true);closeForm();setMsg(msgId,'Deleted '+label+'. Its row in the sheet is empty and ready for a new entry.','pos')}
@@ -1148,7 +1158,7 @@ function countUpdate(){
     var td=document.querySelector('[data-cdiff="'+CSS.escape(x.l.id)+'"]');if(!td)return;
     if(x.diff===null){td.textContent='—';td.className='';return}
     n++;
-    if(Math.abs(x.diff)<0.5){td.textContent='Matches';td.className='pos';return}
+    if(Math.abs(x.diff)<2){td.textContent='Matches';td.className='pos';return}
     ch++;if(x.diff<0)minus-=x.diff;else plus+=x.diff;
     var u=x.v.u;td.textContent=(x.diff<0?'−':'+')+inUnit(Math.abs(x.diff),u).toLocaleString()+' '+u;td.className=x.diff<0?'neg':'pos';
   });
@@ -1162,7 +1172,7 @@ async function saveCount(){
   try{
     await loadHouse(true);
     /* differences are worked out again from the fresh totals, so a roast logged meanwhile is not double-counted */
-    var todo=countRows().filter(function(x){return x.diff!==null&&Math.abs(x.diff)>=0.5});
+    var todo=countRows().filter(function(x){return x.diff!==null&&Math.abs(x.diff)>=2});
     if(!todo.length){busy(btn,false);closeForm();setMsg('aMsg','Your count matches the sheet for every lot you counted. Nothing needed adjusting.','pos');COUNT.vals={};return}
     setMsg('cfMsg','Saving '+todo.length+' adjustment'+(todo.length===1?'':'s')+'…');
     var g=await readGrid('adj'),C=ADC(g[0]||[]),rows=[],i;
@@ -1186,9 +1196,87 @@ document.addEventListener('click',function(ev){var t=ev.target.closest?ev.target
   else if(t.id==='cfClear'){COUNT.vals={};countForm()}
 });
 
+/* ---------- green lots: add a purchase (new bean or a new lot of one you have) ---------- */
+function GLC(h){var c={id:colOf(h,/^lot id/,0),bean:colOf(h,/^bean/,1),origin:colOf(h,/^origin/,2),date:colOf(h,/^date bought/,3),qty:colOf(h,/^quantity/,4),unit:colOf(h,/^unit/,5),cost:colOf(h,/^cost per unit/,6),ship:colOf(h,/^shipping cost/,7),basis:colOf(h,/^shipping basis/,8),supplier:colOf(h,/^supplier/,9),lead:colOf(h,/^lead time/,10),grams:colOf(h,/^grams bought/,11),landed:colOf(h,/^landed cost/,12),pg:colOf(h,/^landed \$\/g/,13),left:colOf(h,/^green left g/,16)};c.inputs=[c.bean,c.origin,c.date,c.qty,c.unit,c.cost,c.ship,c.basis,c.supplier,c.lead];return c}
+DEF.lots={tab:'Green Lots',read:'A1:R300',cols:GLC};
+var LOTS_ALL=false;
+function lotUses(id){
+  var n=0,R=entriesOf('roasts'),A=entriesOf('adj');
+  R.list.forEach(function(e){if(norm(e.r[R.C.lot])===id)n++});A.list.forEach(function(e){if(norm(e.r[A.C.lot])===id)n++});
+  return n;
+}
+function renderLots(){
+  var E=entriesOf('lots'),C=E.C,list=E.list.slice().sort(function(a,b){var x=isoOf(a.r[C.date]),y=isoOf(b.r[C.date]);return x===y?b.row-a.row:(x<y?1:-1)});
+  if(!list.length){$('lList').innerHTML='<p class="note">'+(HR.sample?'Sample mode has no lots. Refresh from your Google Sheet to add real ones.':'No green lots yet. Press Add a green lot to record your first purchase.')+'</p>';$('lMore').hidden=true;return}
+  var shown=LOTS_ALL?list:list.slice(0,5);
+  $('lList').innerHTML=shown.map(function(e){var r=e.r,left=num(r[C.left]),ship=norm(r[C.ship]);
+    return '<div class="entry"><div class="e-main"><div><b>'+esc(norm(r[C.bean]))+'</b> · bought '+fmtD(r[C.date])+(left<=0?' <span class="pill out">Used up</span>':'')+'</div>'+
+    '<div class="e-sub">'+esc(norm(r[C.qty]))+' '+esc(norm(r[C.unit]))+' at '+esc(norm(r[C.cost])||'—')+' per '+esc(norm(r[C.unit])||'unit')+(ship&&num(ship)>0?' + '+esc(ship)+' shipping':'')+' · '+esc(norm(r[C.pg])||'—')+'/g landed · '+kg(Math.max(0,left))+' left</div>'+
+    (norm(r[C.origin])||norm(r[C.supplier])?'<div class="e-sub">'+esc([norm(r[C.origin]),norm(r[C.supplier])].filter(Boolean).join(' · '))+'</div>':'')+
+    '<div class="e-sub" style="font-size:12px">Lot ID: '+esc(norm(r[C.id])||'(fills in once saved)')+'</div></div><button data-ledit="'+e.row+'" data-needsheet>Edit</button></div>'}).join('');
+  $('lMore').hidden=list.length<=5;$('lMore').textContent=LOTS_ALL?'Show the 5 newest':'Show all '+list.length+' lots';
+}
+function lotForm(e){
+  var C=GLC((SH.grids.lots[0])||[]),r=e?e.r:[],uses=e?lotUses(norm(r[C.id])):0,lock=uses>0,v=function(k){return e?norm(r[C[k]]):''};
+  FORM={kind:'lots',entry:e||null};
+  var beans={};entriesOf('lots').list.forEach(function(x){var b=norm(x.r[C.bean]);if(b)beans[b]=1});
+  $('lForm').innerHTML='<h3 style="border:0;margin:0 0 10px;padding:0">'+(e?'Edit green lot':'Add a green lot')+'</h3>'+
+   (lock?'<p class="sub">This lot is used by '+uses+' roast'+(uses===1?'':'s')+' or adjustment'+(uses===1?'':'s')+', so its bean and purchase date are locked. Changing them would change its Lot ID and break those links.</p>':'')+
+   '<div class="fgrid">'+
+   '<div class="wide"><label for="lfBean">Bean</label><input id="lfBean" type="text" list="lfBeans" autocomplete="off" value="'+esc(v('bean'))+'"'+(lock?' disabled':'')+' placeholder="Pick a bean you have, or type a new name"><datalist id="lfBeans">'+Object.keys(beans).sort().map(function(b){return '<option value="'+esc(b)+'">'}).join('')+'</datalist><div class="sub" id="lfBeanNote" style="margin:2px 0 0"></div></div>'+
+   '<div class="wide"><label for="lfOrigin">Origin / description (optional)</label><input id="lfOrigin" type="text" value="'+esc(v('origin'))+'" placeholder="e.g. Yunnan, natural, SL34"></div>'+
+   '<div><label for="lfDate">Date bought</label><input id="lfDate" type="date" value="'+(e?isoOf(r[C.date]):todayIso())+'"'+(lock?' disabled':'')+'></div>'+
+   '<div><label for="lfQty">Quantity bought</label><div class="pair"><input id="lfQty" type="number" min="0" step="any" inputmode="decimal" value="'+(e?num(r[C.qty]):'')+'"><select id="lfUnit" aria-label="Unit">'+unitOpts(e?v('unit'):'lb')+'</select></div></div>'+
+   '<div><label for="lfCost">Cost per unit ($)</label><input id="lfCost" type="number" min="0" step="0.01" inputmode="decimal" value="'+(e&&v('cost')?num(r[C.cost]):'')+'"></div>'+
+   '<div><label for="lfShip">Shipping ($, optional)</label><div class="pair"><input id="lfShip" type="number" min="0" step="0.01" inputmode="decimal" value="'+(e&&v('ship')?num(r[C.ship]):'')+'" placeholder="0"><select id="lfBasis" aria-label="Shipping basis"><option'+(v('basis')==='Per unit'?'':' selected')+'>Total for lot</option><option'+(v('basis')==='Per unit'?' selected':'')+'>Per unit</option></select></div></div>'+
+   '<div><label for="lfSupplier">Supplier (optional)</label><input id="lfSupplier" type="text" value="'+esc(v('supplier'))+'"></div>'+
+   '<div><label for="lfLead">Lead time, weeks (optional)</label><input id="lfLead" type="number" min="0" step="1" value="'+(e&&v('lead')?num(r[C.lead]):'')+'" placeholder="'+(HR.set.lead||8)+'"></div>'+
+   '</div><p class="sub" id="lfPreview"></p>'+formBtns('lf',!!e&&!lock)+
+   (e&&lock?'<p class="sub">To retire a lot you’ve used, log a Green “Stock count correction” down to zero instead of deleting it.</p>':'');
+  $('lForm').hidden=false;lotPreview();$(lock?'lfQty':'lfBean').focus();
+}
+function lotPreview(){
+  var bean=$('lfBean').value.trim(),date=$('lfDate').value,qty=num($('lfQty').value),u=$('lfUnit').value,cost=num($('lfCost').value),ship=num($('lfShip').value),per=$('lfBasis').value==='Per unit';
+  var g=toG(qty,u),total=qty*cost+(per?ship*qty:ship),known=HR.lots.some(function(l){return l.bean===bean});
+  $('lfBeanNote').textContent=!bean?'':(known?'Adds another lot of this bean. Its cost is pooled with the other lots for pricing.':'New bean. It will appear in the Overview, Price list and product builder once saved.');
+  var id=bean&&date?bean+' ('+date+')':'';
+  if(id&&!FORM.entry){var dup=HR.lots.filter(function(l){return l.id===id||l.id.indexOf(id+' #')===0}).length;if(dup)id+=' #'+(dup+1)}
+  $('lfPreview').innerHTML=g>0&&cost>0?'<b>'+kg(g)+'</b> for <b>'+money(total)+'</b> landed · <b>$'+(total/g).toFixed(4)+'</b> per green gram'+(id?' · Lot ID will be “'+esc(id)+'”':''):'Enter the quantity and cost per unit to see the landed cost per gram.';
+}
+async function saveLot(){
+  var btn=$('lfSave'),bean=$('lfBean').value.trim().replace(/\s+/g,' '),date=$('lfDate').value,qty=num($('lfQty').value),cost=$('lfCost').value;
+  if(!bean||!date||!(qty>0)||cost===''||num(cost)<0){setMsg('lfMsg','Add the bean, date bought, quantity and cost per unit.','neg');return}
+  if(/[()]/.test(bean)){setMsg('lfMsg','Leave brackets out of the bean name. The app adds the date in brackets to make the Lot ID.','neg');return}
+  var ship=$('lfShip').value,lead=$('lfLead').value,o={origin:$('lfOrigin').value.trim(),unit:$('lfUnit').value,basis:$('lfBasis').value,supplier:$('lfSupplier').value.trim()},e=FORM.entry;
+  busy(btn,true);setMsg('lfMsg','Checking the sheet and saving…');
+  try{
+    var row=await commit('lots',function(C){var v={};
+      if(!e||!$('lfBean').disabled){v[C.bean]=bean;v[C.date]=serial(date)}else{v[C.bean]=norm(e.r[C.bean]);v[C.date]=serial(isoOf(e.r[C.date]))}
+      v[C.origin]=o.origin;v[C.qty]=qty;v[C.unit]=o.unit;v[C.cost]=num(cost);v[C.ship]=ship===''?'':num(ship);v[C.basis]=ship===''||num(ship)===0?'':o.basis;v[C.supplier]=o.supplier;v[C.lead]=lead===''?'':num(lead);return v},e);
+    await loadHouse(true);closeForm();
+    var x=entriesOf('lots'),C=x.C,s=x.list.filter(function(k){return k.row===row})[0];
+    setMsg('lMsg',(e?'Saved changes to ':'Added ')+(s?'“'+norm(s.r[C.id])+'” ('+norm(s.r[C.pg])+'/g landed). '+(e?'':'It’s now in the lot lists for roasts, adjustments and stock counts.'):'the lot in row '+row+' of Green Lots.'),'pos');
+  }catch(err){busy(btn,false);setMsg('lfMsg',writeErr(err),'neg');if(err&&err.code==='conflict'){await loadHouse(true);closeForm();setMsg('lMsg',writeErr(err),'neg')}}
+}
+document.addEventListener('input',function(ev){if(/^lf(Bean|Date|Qty|Cost|Ship)$/.test(ev.target.id))lotPreview()});
+document.addEventListener('change',function(ev){if(/^lf(Unit|Basis|Date)$/.test(ev.target.id))lotPreview()});
+document.addEventListener('click',function(ev){var t=ev.target.closest?ev.target.closest('button'):null;if(!t)return;
+  if(t.id==='lAdd'||t.dataset.ledit){var row=t.dataset.ledit?+t.dataset.ledit:0;(async function(){
+    if(!canWrite()){setMsg('lMsg',writeErr(gerr('no_sheet')),'neg');return}
+    if(FORM.kind)closeForm();await freshen();
+    var e=null;if(row){e=entriesOf('lots').list.filter(function(x){return x.row===row})[0];if(!e){setMsg('lMsg','That lot is no longer in the sheet. The list has been refreshed.','neg');return}}
+    lotForm(e);$('lForm').scrollIntoView({block:'nearest'});})()}
+  else if(t.id==='lfSave')saveLot();
+  else if(t.id==='lfCancel')closeForm();
+  else if(t.id==='lfDel')$('lfConfirm').hidden=false;
+  else if(t.id==='lfNo')$('lfConfirm').hidden=true;
+  else if(t.id==='lfYes')delEntry('lots','lf','lMsg','the lot');
+  else if(t.id==='lMore'){LOTS_ALL=!LOTS_ALL;renderLots()}
+});
+
 /* ---------- needs-a-sheet states, refresh on return ---------- */
 function renderEdit(){
-  renderOverview();renderRoasts();renderAdj();
+  renderOverview();renderRoasts();renderAdj();renderLots();
   var ok=canWrite();
   document.querySelectorAll('[data-needsheet]').forEach(function(b){b.disabled=!ok});
   $('pSave').disabled=!ok;
