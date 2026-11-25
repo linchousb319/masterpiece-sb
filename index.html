@@ -956,7 +956,7 @@ async function freshen(){if(canWrite()&&Date.now()-(HR.at||0)>30000)await loadHo
 function renderOverview(){
   var floor=HR.set.floor||2000,tg=0,tv=0,tr=0,low=0;
   var rows=HR.beans.map(function(b){var c=beanCost(b),st=b.greenLeft<=0?2:(b.greenLeft<floor?1:0);if(st)low++;tg+=Math.max(0,b.greenLeft);tv+=Math.max(0,b.greenLeft)*b.greenG;tr+=Math.max(0,b.roastedHand);return {b:b,c:c,st:st}});
-  rows.sort(function(a,b){return b.st-a.st||a.b.name.localeCompare(b.b.name)});
+  rows.sort(function(a,b){return b.st-a.st||a.b.greenLeft-b.b.greenLeft||a.b.name.localeCompare(b.b.name)});
   $('ovKpis').innerHTML='<div><small>Green on hand</small><b>'+kg(tg)+'</b></div><div><small>Value of green on hand</small><b>'+money(tv)+'</b></div><div><small>Roasted on hand</small><b>'+kg(tr)+'</b></div><div><small>Beans low or out</small><b class="'+(low?'warnc':'')+'">'+low+'</b></div>';
   var t='<tr><th>Bean</th><th>Status</th><th>Green left</th><th>Roasted on hand</th><th>Cost per sellable g</th><th>Lost to roasting &amp; testing</th></tr>';
   if(!rows.length)t+='<tr><td colspan="6" class="note">No beans loaded yet. Refresh from your Google Sheet, or try the sample beans.</td></tr>';
